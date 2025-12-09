@@ -1,4 +1,6 @@
-﻿namespace Police_Intranet
+﻿using System.Resources;
+
+namespace Police_Intranet
 {
     partial class Main
     {
@@ -69,7 +71,6 @@
 
             // picLogo
             this.picLogo.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.picLogo.BackColor = System.Drawing.Color.Gray; // 임시 배경
             this.picLogo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
 
             this.logoPanel.Controls.Add(this.picLogo);
@@ -93,7 +94,7 @@
             }
 
             SetupButton(this.btnAdmin, "🛠 관리자", this.btnAdmin_Click);
-            SetupButton(this.btnReport, "📑 보고서", this.btnReport_Click);
+            SetupButton(this.btnReport, "📑 보고서&&마쯔다", this.btnReport_Click);
             SetupButton(this.btnSideNotice, "🚨 사이드 공지", this.btnSideNotice_Click);
             SetupButton(this.btnCalculator, "⚖︎ 법률 계산기", this.btnCalculator_Click);
             SetupButton(this.btnMypage, "👤 마이페이지", this.btnMypage_Click);
@@ -137,7 +138,7 @@
             this.Controls.Add(this.mainPanel);
             this.Controls.Add(this.leftSidebarPanel);
             this.Name = "Main";
-            this.Text = "OO경찰청 인트라넷";
+            this.Text = "젤리 경찰청 인트라넷";
 
             this.leftSidebarPanel.ResumeLayout(false);
             this.leftSidebarContentPanel.ResumeLayout(false);
@@ -148,10 +149,10 @@
             this.ResumeLayout(false);
 
             // 버튼 초기 표시 상태
-            btnMypage.Visible = false;
+            btnMypage.Visible = true;
             btnReport.Visible = true;
-            btnAdmin.Visible = false;
-            btnLogout.Visible = false;
+            btnAdmin.Visible = true;
+            btnLogout.Visible = true;
         }
 
         #endregion

@@ -1,7 +1,11 @@
+ï»¿using Police_Intranet.Models;
+using Police_Intranet.Properties;
+using Police_Intranet.Services;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using Supabase;
 
 namespace Police_Intranet
 {
@@ -11,50 +15,49 @@ namespace Police_Intranet
         private List<User> workingUsers = new List<User>();
         public List<string> RidingUsers { get; private set; } = new List<string>();
 
-        // ½ÇÁ¦ DB/ÄÁÆ®·Ñ °ü·Ã Á¦°Å
-        // private DB db;
-        private User currentUser;
-
-        // private ReportControl reportControl;
-        // public MypageControl Mypage { get; private set; }
+        private User _currentUser;
+        public MypageControl Mypage { get; private set; }
 
         private Label lblVersion;
+        private DiscordWebhook discordWebhook;
 
-        // ================== »ý¼ºÀÚ ==================
-        public Main(User loggedInUser)
+        private Client _client;
+
+        // ë¡œê·¸ì•„ì›ƒ ì‹œ Programì—ì„œ íŒë‹¨í•˜ê¸° ìœ„í•œ í”Œëž˜ê·¸
+        public bool IsLogoutRequested { get; private set; } = false;
+
+        public Main(User loggedInUser, Client client)
         {
             InitializeComponent();
             InitializeFormProperties();
-            currentUser = loggedInUser;
 
-            InitializeVersionLabel();
-            //LoadControl(new CalculatorControl(null));
-        }
+            _currentUser = loggedInUser ?? throw new ArgumentNullException(nameof(loggedInUser));
+            _client = client ?? throw new ArgumentNullException(nameof(client));
+            this.Icon = Properties.Resource1.police;
 
-        public Main(int userId, string userName, bool isAdmin)
-        {
-            InitializeComponent();
-            InitializeFormProperties();
-            currentUser = new User
+            try
             {
-                UserId = userId,
-                Name = userName,
-            };
+                discordWebhook = new DiscordWebhook("https://discord.com/api/webhooks/1433432108264722545/4wp-I4rpcJR0FhFPnvVsUMkPAps9qi7KZa1O-n6lT3S7YzQhl5NojmznuJEUwNLfP7WY");
+            }
+            catch
+            {
+                discordWebhook = null;
+            }
 
-            InitializeVersionLabel();
-            //LoadControl(new MypageControl(db, currentUser));
-        }
-
-        public Main()
-        {
-            InitializeComponent();
-            InitializeFormProperties();
+            try
+            {
+                // MypageControl ìƒì„±ìž : ë‘ ê°œ ì¸ìžë¥¼ ë°›ìŒ
+                Mypage = new MypageControl(_currentUser, discordWebhook);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("MypageControl ìƒì„± ì˜¤ë¥˜: " + ex.Message, "ì˜¤ë¥˜", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
 
             if (!DesignMode)
                 InitializeVersionLabel();
         }
 
-        // ================== Æû ±âº» ¼Ó¼º ÃÊ±âÈ­ ==================
         private void InitializeFormProperties()
         {
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -62,20 +65,25 @@ namespace Police_Intranet
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
 
-            string iconPath = System.IO.Path.Combine(Application.StartupPath, "logo.ico");
-            if (System.IO.File.Exists(iconPath))
-                this.Icon = new Icon(iconPath);
+            try
+            {
+                string iconPath = System.IO.Path.Combine(Application.StartupPath, "resources", "logos.ico");
+                if (System.IO.File.Exists(iconPath))
+                    this.Icon = new Icon(iconPath);
+            }
+            catch { }
         }
 
-        // ================== ÄÁÆ®·Ñ ·Îµå (Æ²¸¸ À¯Áö) ==================
         private void LoadControl(UserControl control)
         {
+            if (control == null) return;
+
             if (currentControl != null)
                 currentControl.Visible = false;
 
             currentControl = control;
 
-            if (!mainPanel.Controls.Contains(control))
+            if (mainPanel != null && !mainPanel.Controls.Contains(control))
             {
                 control.Dock = DockStyle.Fill;
                 mainPanel.Controls.Add(control);
@@ -84,76 +92,89 @@ namespace Police_Intranet
             control.Visible = true;
         }
 
-        // ================== ¹öÆ° ÀÌº¥Æ® ÇÚµé·¯ ==================
         private void btnMypage_Click(object sender, EventArgs e)
         {
-            // ÆäÀÌÁö ·Îµå ·ÎÁ÷ Á¦°Å
+            if (Mypage != null)
+                LoadControl(Mypage);
         }
 
         private void btnCalculator_Click(object sender, EventArgs e)
         {
-            //LoadControl(new CalculatorControl(null));
+            LoadControl(new CalculatorControl());
         }
 
         private void btnSideNotice_Click(object sender, EventArgs e)
         {
-            //LoadControl(new SideNoticeControl(null));
+            LoadControl(new SideNoticeControl());
         }
 
         private void btnReport_Click(object sender, EventArgs e)
         {
-            //LoadControl(new ReportControl(currentUser, db, workingUsers, this));
-            //
+            if (_currentUser != null)
+                LoadControl(new ReportControl(this, _currentUser));
         }
 
         private void btnAdmin_Click(object sender, EventArgs e)
         {
-            // ±ÇÇÑ Ã¼Å© ¹× °ü¸®ÀÚ ÆäÀÌÁö ·Îµå Á¦°Å
+            if (_currentUser != null && _currentUser.Rank == "ê´€ë¦¬ìž")
+            {
+                LoadControl(new AdminControl(_client));
+            }
+            else
+            {
+                MessageBox.Show("ê¶Œí•œì´ ì—†ìŠµë‹ˆë‹¤.", "ê¶Œí•œ ì˜¤ë¥˜", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
+        // MainForm
         private void BtnLogout_Click(object sender, EventArgs e)
         {
-            var result = MessageBox.Show("·Î±×¾Æ¿ô ÇÏ½Ã°Ú½À´Ï±î?", "·Î±×¾Æ¿ô",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-
-            if (result == DialogResult.Yes)
+            if (MessageBox.Show("ë¡œê·¸ì•„ì›ƒ í•˜ì‹œê² ìŠµë‹ˆê¹Œ?", "í™•ì¸", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
-                //this.Hide();
-                //Login loginForm = new Login();
-                //loginForm.Show();
-                //this.Close();
+                this.Hide(); // MainForm ë‹«ì§€ ì•Šê³  ìˆ¨ê¹€
+
+                Settings.Default.AutoLogin = false;
+                Settings.Default.SavedUsername = "";
+                Settings.Default.Save();
+
+                using (var loginForm = new Login())
+                {
+                    if (loginForm.ShowDialog() == DialogResult.OK)
+                    {
+                        // ë¡œê·¸ì¸ ì„±ê³µ â†’ MainForm ë‹¤ì‹œ ë³´ì—¬ì¤Œ
+                        this.Show();
+                    }
+                    else
+                    {
+                        // ë¡œê·¸ì¸ ì·¨ì†Œ â†’ í”„ë¡œê·¸ëž¨ ì¢…ë£Œ
+                        Application.Exit();
+                    }
+                }
             }
         }
 
-        // ================== ¹öÀü ¶óº§ ÃÊ±âÈ­ (Æ²¸¸ À¯Áö) ==================
+
         private void InitializeVersionLabel()
         {
-            lblVersion = new Label();
-            lblVersion.AutoSize = true;
-            lblVersion.ForeColor = Color.LightGray;
-            lblVersion.Font = new Font("Segoe UI", 8F, FontStyle.Regular);
-            lblVersion.Text = "dadev";
+            if (leftSidebarPanel == null || btnLogout == null) return;
 
-            if (leftSidebarPanel != null && btnLogout != null)
+            lblVersion = new Label
+            {
+                AutoSize = true,
+                ForeColor = Color.LightGray,
+                Font = new Font("Segoe UI", 8F, FontStyle.Regular),
+                Text = "dadev"
+            };
+
+            lblVersion.Location = new Point(btnLogout.Location.X + 60, btnLogout.Location.Y + btnLogout.Height + 25);
+            lblVersion.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
+
+            leftSidebarPanel.Controls.Add(lblVersion);
+
+            leftSidebarPanel.Resize += (s, e) =>
             {
                 lblVersion.Location = new Point(btnLogout.Location.X + 50, btnLogout.Location.Y + btnLogout.Height + 25);
-                lblVersion.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
-                leftSidebarPanel.Controls.Add(lblVersion);
-
-                leftSidebarPanel.Resize += (s, e) =>
-                {
-                    lblVersion.Location = new Point(btnLogout.Location.X + 50, btnLogout.Location.Y + btnLogout.Height + 25);
-                };
-            }
+            };
         }
-    }
-
-    // ================== ´õ¹Ì User Å¬·¡½º (µðÀÚÀÌ³Ê ¾ÈÀü¿ë) ==================
-    public class User
-    {
-        public int UserId { get; set; }
-        public string Name { get; set; } = "Å×½ºÆ® À¯Àú";
-        public bool IsAdmin { get; set; } = false;
-        public bool IsWorking { get; set; } = false;
     }
 }
