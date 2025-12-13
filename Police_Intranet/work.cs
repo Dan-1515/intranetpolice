@@ -16,16 +16,22 @@ namespace Police_Intranet.Models
         [Column("date")]
         public DateTime Date { get; set; }
 
-        [Column("today_work")]
-        public string TodayWork { get; set; }
+        [Column("today_total_seconds")]
+        public long TodayTotalSeconds { get; set; }
 
-        [Column("week_work")]
-        public string WeekWork { get; set; }
+        [Column("week_total_seconds")]
+        public long WeekTotalSeconds { get; set; }
 
         [Column("last_work_start")]
         public DateTime? LastWorkStart { get; set; }
 
         [Column("is_working")]
         public bool IsWorking { get; set; }
+
+        [Column("checkin_time")]
+        public DateTime? CheckinTime { get; set; }
+
+        [Column("checkout_time")]
+        public DateTime? CheckoutTime { get; set; }
     }
 }

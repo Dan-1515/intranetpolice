@@ -47,6 +47,8 @@ namespace Police_Intranet
         private User loggedInUser;
         private bool isRiding = false;
 
+        private System.Windows.Forms.Timer rideTimer;
+
         public ReportControl(Main main, User currentUser, MypageControl mypage = null)
         {
             InitializeComponent();
@@ -56,6 +58,12 @@ namespace Police_Intranet
             loggedInUser = currentUser; // 여기서 초기화
             this.RidingUsers = main.RidingUsers;
             mypageControl = mypage;
+
+            rideTimer = new System.Windows.Forms.Timer();
+            rideTimer.Interval = 3000; // 3초마다 갱신
+            rideTimer.Tick += async (s, e) => await LoadRidingUsersAsync();
+            rideTimer.Start();
+            _ = LoadRidingUsersAsync();
 
             RefreshWorkingUsers();
             RefreshLbUser(); // 탭 전환 후에도 유지 가능하도록 수정
@@ -398,8 +406,36 @@ namespace Police_Intranet
             this.Resize += (s, e) => UpdateRightPanelLocation();
         }
 
-        // BtnStartRide 클릭 이벤트
-        // 탑승 시작
+        private async Task LoadRidingUsersAsync()
+        {
+            try
+            {
+                if (SupabaseClient.Instance == null) return;
+
+                // DB 조회: isriding = true 인 사람만 가져옴
+                var response = await SupabaseClient.Instance
+                    .From<User>()
+                    .Filter("isriding", Supabase.Postgrest.Constants.Operator.Equals, "true")
+                    .Get();
+
+                var ridingUsers = response.Models;
+
+                // UI 스레드에서 리스트박스 갱신
+                if (lbUser.InvokeRequired)
+                {
+                    lbUser.Invoke(new Action(() => UpdateRideUI(ridingUsers)));
+                }
+                else
+                {
+                    UpdateRideUI(ridingUsers);
+                }
+            }
+            catch
+            {
+                // 타이머 에러는 무시 (로그만 남김)
+            }
+        }
+        // [수정] 탑승 시작 버튼 클릭
         private async void BtnStartRide_Click(object sender, EventArgs e)
         {
             if (loggedInUser == null)
@@ -408,60 +444,44 @@ namespace Police_Intranet
                 return;
             }
 
-            if (cbLevel.SelectedItem == null)
+            if (cbLevel.SelectedItem == null || cbRP.SelectedItem == null)
             {
-                MessageBox.Show("탑승자의 직급을 선택해주세요.");
+                MessageBox.Show("직급과 RP를 모두 선택해주세요.");
                 return;
             }
 
-            if (cbRP.SelectedItem == null)
-            {
-                MessageBox.Show("참여하는 RP를 선택해주세요.");
-                return;
-            }
-
-            string name = loggedInUser.Username;
             string level = cbLevel.SelectedItem.ToString();
             string rp = cbRP.SelectedItem.ToString();
 
-            // 이미 탑승 중인지 확인 (Main.RidingUsers 기준)
-            if (mainForm.RidingUsers.Any(u => u.StartsWith(name + " |")))
-            {
-                MessageBox.Show("이미 탑승 중입니다.");
-                return;
-            }
-
-            string rideInfo = $"{name} | {level} | {rp}";
-
-            // UI 업데이트
-            lbUser.Items.Add(rideInfo);
-
-            // 외부 리스트 업데이트
-            mainForm.RidingUsers.Add(rideInfo);
-
-            // 버튼 상태 업데이트
-            isRiding = true;
-            btnStartRide.Visible = false;
-            btnEndRide.Visible = true;
-
-            // Supabase DB 업데이트
-            if (SupabaseClient.Instance == null)
-            {
-                MessageBox.Show("DB 클라이언트가 초기화되지 않았습니다.\n프로그램을 다시 시작해주세요.");
-                return;
-            }
-
             try
             {
-                await SupabaseClient.Instance
+                // 1. 내 최신 정보를 DB에서 가져옴 (가장 안전한 방법)
+                var userRes = await SupabaseClient.Instance
                     .From<User>()
-                    .Where(u => u.Username == loggedInUser.Username)
-                    .Update(new User
-                    {
-                        IsRiding = true,
-                        Level = level,
-                        RP = rp
-                    });
+                    .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, loggedInUser.Username)
+                    .Single();
+
+                var myUser = userRes;
+
+                if (myUser != null)
+                {
+                    // 2. 값 변경
+                    myUser.IsRiding = true;
+                    myUser.Level = level;
+                    myUser.RP = rp;
+
+                    // 3. 통째로 업데이트
+                    await SupabaseClient.Instance
+                        .From<User>()
+                        .Update(myUser);
+
+                    // 4. 즉시 목록 갱신 (타이머가 돌지만 즉각 반응을 위해 호출)
+                    await LoadRidingUsersAsync();
+
+                    // 버튼 상태 변경
+                    btnStartRide.Visible = false;
+                    btnEndRide.Visible = true;
+                }
             }
             catch (Exception ex)
             {
@@ -469,7 +489,7 @@ namespace Police_Intranet
             }
         }
 
-        // 탑승 종료
+        // [수정] 탑승 종료 버튼 클릭
         private async void BtnEndRide_Click(object sender, EventArgs e)
         {
             if (loggedInUser == null)
@@ -478,45 +498,35 @@ namespace Police_Intranet
                 return;
             }
 
-            string name = loggedInUser.Username;
-            int indexToRemove = mainForm.RidingUsers.FindIndex(u => u.StartsWith(name + " |"));
-
-            if (indexToRemove != -1)
-            {
-                // UI 업데이트
-                lbUser.Items.RemoveAt(indexToRemove);
-
-                // 외부 리스트 업데이트
-                mainForm.RidingUsers.RemoveAt(indexToRemove);
-            }
-            else
-            {
-                MessageBox.Show("현재 탑승 정보가 없습니다.");
-            }
-
-            // 버튼 상태 업데이트
-            isRiding = false;
-            btnStartRide.Visible = true;
-            btnEndRide.Visible = false;
-
-            // Supabase DB 업데이트
-            if (SupabaseClient.Instance == null)
-            {
-                MessageBox.Show("DB 클라이언트가 초기화되지 않았습니다.\n프로그램을 다시 시작해주세요.");
-                return;
-            }
-
             try
             {
-                await SupabaseClient.Instance
+                // 1. 내 최신 정보 가져오기
+                var userRes = await SupabaseClient.Instance
                     .From<User>()
-                    .Where(u => u.Username == loggedInUser.Username)
-                    .Update(new User
-                    {
-                        IsRiding = false,
-                        Level = null,
-                        RP = null
-                    });
+                    .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, loggedInUser.Username)
+                    .Single();
+
+                var myUser = userRes;
+
+                if (myUser != null)
+                {
+                    // 2. 값 초기화
+                    myUser.IsRiding = false;
+                    myUser.Level = null; // 또는 ""
+                    myUser.RP = null;    // 또는 ""
+
+                    // 3. 통째로 업데이트
+                    await SupabaseClient.Instance
+                        .From<User>()
+                        .Update(myUser);
+
+                    // 4. 즉시 목록 갱신
+                    await LoadRidingUsersAsync();
+
+                    // 버튼 상태 변경 
+                    btnStartRide.Visible = true;
+                    btnEndRide.Visible = false;
+                }
             }
             catch (Exception ex)
             {
@@ -524,28 +534,20 @@ namespace Police_Intranet
             }
         }
 
-        // ReportControl 표시 시 호출
+        // [수정] 외부 호출용 메서드 (이제 타이머가 자동 갱신하므로 기능 축소)
         public void RefreshLbUser()
         {
-            lbUser.Items.Clear();
-            foreach (var rideInfo in mainForm.RidingUsers)
-            {
-                lbUser.Items.Add(rideInfo);
-            }
+            // 수동으로 갱신하고 싶을 때 호출되도록 연결
+            // _ = LoadRidingUsersAsync();
+        }
 
-            // 현재 유저 상태 체크 후 버튼 상태 업데이트
-            string name = loggedInUser?.Username;
-            if (name != null && mainForm.RidingUsers.Any(u => u.StartsWith(name + " |")))
+        public void UpdateRideUI(List<User> ridingUsers)
+        {
+            lbUser.Items.Clear();
+            foreach (var user in ridingUsers)
             {
-                isRiding = true;
-                btnStartRide.Visible = false;
-                btnEndRide.Visible = true;
-            }
-            else
-            {
-                isRiding = false;
-                btnStartRide.Visible = true;
-                btnEndRide.Visible = false;
+                string displayText = $"{user.Username} | {user.Level} | {user.RP}";
+                lbUser.Items.Add(displayText);
             }
         }
 

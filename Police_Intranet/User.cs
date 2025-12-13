@@ -1,9 +1,7 @@
-﻿using Supabase;
-using Postgrest;
-using Supabase.Postgrest.Attributes;
+﻿using Supabase.Postgrest.Attributes;
 using Supabase.Postgrest.Models;
+using Newtonsoft.Json; // [중요] 이 네임스페이스가 꼭 필요합니다.
 using System;
-using System.Text.Json.Serialization;
 
 namespace Police_Intranet.Models
 {
@@ -14,66 +12,75 @@ namespace Police_Intranet.Models
         public int Id { get; set; }
 
         [Column("username")]
-        [JsonPropertyName("username")]
+        [JsonProperty("username")] // JsonPropertyName 대신 JsonProperty 사용
         public string Username { get; set; }
 
         // [Column("userid")]
-        // [JsonPropertyName("userid")]
+        // [JsonProperty("userid")]
         // public string UserId { get; set; }
 
         [Column("password_hash")]
-        [JsonPropertyName("password_hash")]
+        [JsonProperty("password_hash")]
         public string PasswordHash { get; set; }
 
         [Column("rank")]
-        [JsonPropertyName("rank")]
+        [JsonProperty("rank")]
         public string Rank { get; set; }
 
         [Column("created_at")]
-        [JsonPropertyName("created_at")]
+        [JsonProperty("created_at")]
         public DateTime? CreatedAt { get; set; }
 
+        // --- 아래 필드들은 'work' 테이블로 기능이 이관되었지만, 
+        // --- users 테이블에도 컬럼이 남아있다면 에러 방지를 위해 둡니다.
+        // --- 만약 users 테이블에 이 컬럼들이 없다면 주석 처리해야 에러가 안 납니다.
+
         [Column("checkin_time")]
-        [JsonPropertyName("checkin_time")]
+        [JsonProperty("checkin_time")]
         public DateTime? CheckInTime { get; set; }
 
         [Column("checkout_time")]
-        [JsonPropertyName("checkout_time")]
+        [JsonProperty("checkout_time")]
         public DateTime? CheckOutTime { get; set; }
 
-        [Column("isworking")]
-        [JsonPropertyName("isworking")]
+        [Column("isworking")] // DB 컬럼명이 isworking (소문자)인지 확인 필요
+        [JsonProperty("isworking")]
         public bool? IsWorking { get; set; }
 
         [Column("today_total_seconds")]
-        [JsonPropertyName("today_total_seconds")]
+        [JsonProperty("today_total_seconds")]
         public long? TodayTotalSeconds { get; set; }
 
         [Column("week_total_seconds")]
-        [JsonPropertyName("week_total_seconds")]
+        [JsonProperty("week_total_seconds")]
         public long? WeekTotalSeconds { get; set; }
 
         [Column("workdate")]
+        [JsonProperty("workdate")]
         public DateTime? WorkDate { get; set; }
 
+        // ---------------------------------------------------------
+
         [Column("is_admin")]
-        [JsonPropertyName("is_admin")]
+        [JsonProperty("is_admin")]
         public bool? IsAdmin { get; set; }
 
+        // Postgres는 보통 소문자 컬럼명을 씁니다. DB가 "isapproved"라면 아래처럼 수정
         [Column("IsApproved")]
-        [JsonPropertyName("isapproved")]
+        [JsonProperty("isapproved")]
         public bool? IsApproved { get; set; }
 
-        [Column("isRiding")]
-        [JsonPropertyName("isriding")]
+        // DB가 "isriding"이라면 아래처럼 수정
+        [Column("isriding")]
+        [JsonProperty("isriding")]
         public bool? IsRiding { get; set; }
 
         [Column("level")]
-        [JsonPropertyName("level")]
+        [JsonProperty("level")]
         public string Level { get; set; }
 
         [Column("rp")]
-        [JsonPropertyName("rp")]
+        [JsonProperty("rp")]
         public string RP { get; set; }
 
         public User GetWeekResetCopy()
