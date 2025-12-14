@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,7 +37,21 @@ namespace Police_Intranet
         private readonly string supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleXhjdXBlZGh5b2F0b3Z6ZXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NDAzNjEsImV4cCI6MjA3OTIxNjM2MX0.jQKzE_ZO1t8x8heY0mqs0pttsb7R06KIGcDVOihwg-k";
 
         private Supabase.Client supabase;
+
+        // 현재 로그인한 계정의 Work 상태
         private long? currentWorkId;
+
+        // 계정별 상태 저장용
+        private Dictionary<string, WorkData> _userWorkData = new Dictionary<string, WorkData>();
+
+        public class WorkData
+        {
+            public bool IsCheckedIn { get; set; } = false;
+            public DateTime? WorkStartTime { get; set; } = null;
+            public TimeSpan TodayTotal { get; set; } = TimeSpan.Zero;
+            public TimeSpan WeekTotal { get; set; } = TimeSpan.Zero;
+            public long? CurrentWorkId { get; set; } = null;
+        }
 
         // 🔹 외부에서 접근 가능하도록 프로퍼티 추가
         public User CurrentUser => currentUser;
@@ -66,6 +81,42 @@ namespace Police_Intranet
         public async Task RefreshWorkStatus()
         {
             await InitializeSupabaseAndStatusAsync();
+        }
+
+        // 계정 변경 시 호출
+        public void UpdateUser(User newUser)
+        {
+            // 현재 계정 상태 저장
+            if (currentUser != null)
+            {
+                _userWorkData[currentUser.Username] = new WorkData
+                {
+                    IsCheckedIn = isCheckedIn,
+                    WorkStartTime = workStartTime,
+                    TodayTotal = todayTotal,
+                    WeekTotal = weekTotal,
+                    CurrentWorkId = currentWorkId
+                };
+            }
+
+            currentUser = newUser;
+
+            // 새 계정 상태 불러오기
+            if (!_userWorkData.TryGetValue(currentUser.Username, out var data))
+                data = new WorkData();
+
+            isCheckedIn = data.IsCheckedIn;
+            workStartTime = data.WorkStartTime;
+            todayTotal = data.TodayTotal;
+            weekTotal = data.WeekTotal;
+            currentWorkId = data.CurrentWorkId;
+
+            RefreshUserInfo();
+            btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
+            UpdateWorkTimeLabel();
+
+            if (isCheckedIn && workStartTime.HasValue)
+                StartWorkTimer();
         }
 
         private void InitializeUi()

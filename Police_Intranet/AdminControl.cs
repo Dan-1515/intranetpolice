@@ -233,11 +233,7 @@ namespace Police_Intranet
                 // ✅ MypageControl의 currentUser 덮어쓰기
                 if (mypageControl != null && mypageControl.CurrentUser.Id == existingUser.Id)
                 {
-                    mypageControl.CurrentUser.Username = existingUser.Username;
-                    mypageControl.CurrentUser.Rank = existingUser.Rank;
-
-                    // UI 갱신
-                    mypageControl.RefreshUserInfo();
+                    mypageControl.UpdateUser(existingUser);
                 }
 
                 MessageBox.Show("유저 정보가 업데이트되었습니다.");

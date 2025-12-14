@@ -11,10 +11,7 @@ namespace Police_Intranet
 {
     public partial class Login : Form
     {
-        // 로그인 성공 후 반환할 User 객체
         public User LoggedInUser { get; private set; }
-
-        // Supabase 클라이언트
         private Client client;
 
         public Login()
@@ -27,9 +24,6 @@ namespace Police_Intranet
 
             this.AcceptButton = btnLogin;
             this.Load += Login_Load;
-
-            btnLogin.Click += BtnLogin_Click;
-            btnRegister.Click += BtnRegister_Click;
         }
 
         private async void Login_Load(object sender, EventArgs e)
@@ -49,9 +43,10 @@ namespace Police_Intranet
 
                 client = SupabaseClient.Instance;
 
-                // 자동 로그인 시도
+                // 자동 로그인 시도 (Settings 저장하지 않음)
                 if (Settings.Default.AutoLogin && !string.IsNullOrWhiteSpace(Settings.Default.SavedUsername))
                 {
+                    txtUsername.Text = Settings.Default.SavedUsername; // 화면에 표시
                     await AttemptLoginAsync(Settings.Default.SavedUsername, autoLogin: true);
                 }
             }
@@ -109,13 +104,16 @@ namespace Police_Intranet
                     return;
                 }
 
-                // ✅ 자동 로그인 설정 및 저장
-                bool shouldAutoLogin = chkAutoLogin != null ? chkAutoLogin.Checked || autoLogin : autoLogin;
-                Settings.Default.AutoLogin = shouldAutoLogin;
-                Settings.Default.SavedUsername = shouldAutoLogin ? username : "";
-                Settings.Default.Save();
-
                 LoggedInUser = user;
+
+                // ✅ 수동 로그인 시 Settings 갱신
+                if (!autoLogin)
+                {
+                    bool shouldAutoLogin = chkAutoLogin?.Checked ?? false;
+                    Settings.Default.AutoLogin = shouldAutoLogin;
+                    Settings.Default.SavedUsername = shouldAutoLogin ? username : "";
+                    Settings.Default.Save();
+                }
 
                 this.DialogResult = DialogResult.OK;
                 this.Close();
@@ -132,15 +130,9 @@ namespace Police_Intranet
             this.Hide();
             using (var signupForm = new Signup())
             {
-                if (signupForm.ShowDialog() == DialogResult.OK)
-                {
-                    this.Show();
-                    this.BringToFront();
-                }
-                else
-                {
-                    Application.Exit();
-                }
+                var result = signupForm.ShowDialog();
+                this.Show();
+                this.BringToFront();
             }
         }
 
@@ -149,6 +141,14 @@ namespace Police_Intranet
         {
             this.Show();
             this.BringToFront();
+        }
+
+        // 로그아웃 시 이전 계정 초기화 (필요 시 호출)
+        public void ClearSavedLogin()
+        {
+            Settings.Default.AutoLogin = false;
+            Settings.Default.SavedUsername = "";
+            Settings.Default.Save();
         }
     }
 }

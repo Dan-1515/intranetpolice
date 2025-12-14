@@ -145,8 +145,7 @@ namespace Police_Intranet
 
         private void BtnLogout_Click(object sender, EventArgs e)
         {
-            if (MessageBox.Show("로그아웃 하시겠습니까?", "확인",
-                MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (MessageBox.Show("로그아웃 하시겠습니까?", "확인", MessageBoxButtons.YesNo) == DialogResult.Yes)
             {
                 this.Hide();
 
@@ -158,6 +157,11 @@ namespace Police_Intranet
                 {
                     if (loginForm.ShowDialog() == DialogResult.OK)
                     {
+                        _currentUser = loginForm.LoggedInUser;
+
+                        // Mypage 인스턴스는 재사용, 계정만 갱신
+                        Mypage.UpdateUser(_currentUser);
+
                         this.Show();
                     }
                     else
@@ -167,6 +171,8 @@ namespace Police_Intranet
                 }
             }
         }
+
+
 
         private void InitializeVersionLabel()
         {
