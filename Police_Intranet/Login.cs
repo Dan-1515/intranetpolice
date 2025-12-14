@@ -25,21 +25,18 @@ namespace Police_Intranet
             this.MinimizeBox = true;
             this.MaximizeBox = false;
 
-            // 버튼 이벤트 연결
-            // btnLogin.Click += BtnLogin_Click;
-            // btnRegister.Click += BtnRegister_Click;
-
-            // Enter 키로 로그인 가능하도록 AcceptButton 설정
             this.AcceptButton = btnLogin;
-
-            // Load 이벤트
             this.Load += Login_Load;
+
+            btnLogin.Click += BtnLogin_Click;
+            btnRegister.Click += BtnRegister_Click;
         }
 
         private async void Login_Load(object sender, EventArgs e)
         {
             try
             {
+                // 중앙 배치
                 if (pnlContainer != null)
                 {
                     pnlContainer.Left = (this.ClientSize.Width - pnlContainer.Width) / 2;
@@ -52,11 +49,10 @@ namespace Police_Intranet
 
                 client = SupabaseClient.Instance;
 
-                // 자동 로그인
+                // 자동 로그인 시도
                 if (Settings.Default.AutoLogin && !string.IsNullOrWhiteSpace(Settings.Default.SavedUsername))
                 {
-                    string savedUsername = Settings.Default.SavedUsername;
-                    await AttemptLoginAsync(savedUsername, autoLogin: true);
+                    await AttemptLoginAsync(Settings.Default.SavedUsername, autoLogin: true);
                 }
             }
             catch (Exception ex)
@@ -67,50 +63,34 @@ namespace Police_Intranet
 
         private async void BtnLogin_Click(object sender, EventArgs e)
         {
-            string usernameInput = txtUsername.Text.Trim();
-            string passwordInput = txtPassword.Text;
+            string username = txtUsername.Text.Trim();
+            string password = txtPassword.Text;
 
-            if (string.IsNullOrWhiteSpace(usernameInput) || string.IsNullOrWhiteSpace(passwordInput))
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
                 MessageBox.Show("닉네임과 비밀번호를 모두 입력해주세요.", "로그인 오류", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            try
-            {
-                // Supabase 클라이언트 초기화
-                if (client == null)
-                {
-                    if (SupabaseClient.Instance == null)
-                        await SupabaseClient.Initialize();
-
-                    client = SupabaseClient.Instance;
-                }
-
-                await AttemptLoginAsync(usernameInput, passwordInput);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("로그인 중 오류가 발생했습니다: " + ex.Message);
-            }
+            await AttemptLoginAsync(username, password);
         }
 
-        private async Task AttemptLoginAsync(string usernameInput, string passwordInput = null, bool autoLogin = false)
+        private async Task AttemptLoginAsync(string username, string password = null, bool autoLogin = false)
         {
             try
             {
                 if (client == null)
                 {
-                    MessageBox.Show("Supabase 클라이언트가 초기화되지 않았습니다.");
-                    return;
+                    if (SupabaseClient.Instance == null)
+                        await SupabaseClient.Initialize();
+                    client = SupabaseClient.Instance;
                 }
 
                 var result = await client.From<User>()
-                                         .Where(u => u.Username == usernameInput)
+                                         .Where(u => u.Username == username)
                                          .Get();
 
-                var user = result?.Models?.FirstOrDefault();
-
+                var user = result.Models.FirstOrDefault();
                 if (user == null)
                 {
                     if (!autoLogin) MessageBox.Show("존재하지 않는 닉네임입니다.");
@@ -123,19 +103,17 @@ namespace Police_Intranet
                     return;
                 }
 
-                if (!autoLogin && !BCrypt.Net.BCrypt.Verify(passwordInput ?? "", user.PasswordHash))
+                if (!autoLogin && !BCrypt.Net.BCrypt.Verify(password ?? "", user.PasswordHash))
                 {
                     MessageBox.Show("비밀번호를 확인해주세요.");
                     return;
                 }
 
-                // 자동 로그인 설정
-                if (chkAutoLogin != null)
-                {
-                    Settings.Default.AutoLogin = chkAutoLogin.Checked || autoLogin;
-                    Settings.Default.SavedUsername = Settings.Default.AutoLogin ? usernameInput : "";
-                    Settings.Default.Save();
-                }
+                // ✅ 자동 로그인 설정 및 저장
+                bool shouldAutoLogin = chkAutoLogin != null ? chkAutoLogin.Checked || autoLogin : autoLogin;
+                Settings.Default.AutoLogin = shouldAutoLogin;
+                Settings.Default.SavedUsername = shouldAutoLogin ? username : "";
+                Settings.Default.Save();
 
                 LoggedInUser = user;
 
@@ -165,16 +143,6 @@ namespace Police_Intranet
                 }
             }
         }
-
-        // ✅ KeyDown 이벤트 삭제 → AcceptButton으로 대체
-        // private void LoginInputs_KeyDown(object sender, KeyEventArgs e)
-        // {
-        //     if (e.KeyCode == Keys.Enter)
-        //     {
-        //         BtnLogin_Click(sender, e);
-        //         e.SuppressKeyPress = true;
-        //     }
-        // }
 
         // 로그아웃 시 Main에서 Login 폼을 다시 보여주기 위해 호출
         public void ShowLogin()
