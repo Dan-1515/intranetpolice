@@ -8,13 +8,13 @@ namespace Police_Intranet.Models
     public class Work : BaseModel
     {
         [PrimaryKey("id", false)]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Column("user_id")]
         public int UserId { get; set; }
 
         [Column("date")]
-        public DateTime Date { get; set; }
+        public String Date { get; set; }
 
         [Column("today_total_seconds")]
         public long TodayTotalSeconds { get; set; }

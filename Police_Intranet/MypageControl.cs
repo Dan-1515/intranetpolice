@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq; // LINQ 사용을 위해 추가
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Police_Intranet.Models;   // User, Work 모델
 using Police_Intranet.Services; // DiscordWebhook
 using Supabase; // Supabase 클라이언트 네임스페이스
+using WinTimer = System.Windows.Forms.Timer;
 
 namespace Police_Intranet
 {
@@ -24,6 +24,7 @@ namespace Police_Intranet
         private TimeSpan todayTotal = TimeSpan.Zero;
         private TimeSpan weekTotal = TimeSpan.Zero;
         private DateTime todayDate = DateTime.Today;
+        private WinTimer workTimer;
 
         // 모델 및 서비스
         private User currentUser;
@@ -35,8 +36,9 @@ namespace Police_Intranet
         private readonly string supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleXhjdXBlZGh5b2F0b3Z6ZXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NDAzNjEsImV4cCI6MjA3OTIxNjM2MX0.jQKzE_ZO1t8x8heY0mqs0pttsb7R06KIGcDVOihwg-k";
 
         private Supabase.Client supabase;
+        private long? currentWorkId;
 
-        public MypageControl(User user, DiscordWebhook webhook)
+        public MypageControl(User user, Client client, DiscordWebhook webhook)
         {
             currentUser = user ?? throw new ArgumentNullException(nameof(user));
             workWebhook = webhook;
@@ -55,6 +57,11 @@ namespace Police_Intranet
             _ = InitializeSupabaseAndStatusAsync();
 
             UpdateWorkTimeLabel();
+        }
+
+        public async Task InitializeAsync()
+        {
+            await InitializeSupabaseAndStatusAsync();
         }
 
         private void InitializeUi()
@@ -98,7 +105,7 @@ namespace Police_Intranet
 
             lblWeek = new Label
             {
-                Text = "이번주 근무시간: 0시간 0분 0초",
+                Text = "금주 근무시간: 0시간 0분 0초",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 11, FontStyle.Regular),
                 AutoSize = true
@@ -127,80 +134,72 @@ namespace Police_Intranet
         {
             try
             {
-                // 1. Supabase 클라이언트 연결 초기화
                 await supabase.InitializeAsync();
 
-                // [추가] User ID가 0이거나 확실하지 않을 경우를 대비해 Username으로 ID를 다시 조회
+                string todayStr = DateTime.Now.ToString("yyyy-MM-dd");
+
+                // 🔹 user id 보정
                 if (currentUser.Id == 0 && !string.IsNullOrEmpty(currentUser.Username))
                 {
                     var userRes = await supabase.From<User>()
                         .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Username)
                         .Limit(1)
                         .Get();
+
                     var dbUser = userRes.Models.FirstOrDefault();
-                    if (dbUser != null) currentUser.Id = dbUser.Id;
+                    if (dbUser != null)
+                        currentUser.Id = dbUser.Id;
                 }
 
-                // 2. DB에서 '오늘' 상태 가져오기
-                string todayStr = DateTime.Today.ToString("yyyy-MM-dd");
-
-                var response = await supabase.From<Work>()
+                // 🔹 오늘 날짜 기준 조회 (핵심)
+                var todayRes = await supabase.From<Work>()
                     .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Id)
                     .Filter("date", Supabase.Postgrest.Constants.Operator.Equals, todayStr)
                     .Order("id", Supabase.Postgrest.Constants.Ordering.Descending)
                     .Limit(1)
                     .Get();
 
-                var latestWork = response.Models.FirstOrDefault();
+                var todayWork = todayRes.Models.FirstOrDefault();
 
-                if (latestWork != null)
+                if (todayWork != null)
                 {
-                    // === CASE A: 오늘 기록이 있는 경우 (앱 재실행, 근무 중 등) ===
+                    isCheckedIn = todayWork.IsWorking;
+                    todayTotal = TimeSpan.FromSeconds(todayWork.TodayTotalSeconds);
+                    weekTotal = TimeSpan.FromSeconds(todayWork.WeekTotalSeconds);
 
-                    // 이상 상태 체크: 근무중인데 checkin_time이 없으면 자동 복구
-                    if (latestWork.IsWorking && !latestWork.CheckinTime.HasValue)
+                    if (isCheckedIn)
                     {
-                        await supabase.From<Work>()
-                             .Where(x => x.Id == latestWork.Id)
-                             .Set(x => x.IsWorking, false)
-                             .Update();
-
-                        latestWork.IsWorking = false;
+                        workStartTime = todayWork.CheckinTime ?? DateTime.Now;
+                        currentWorkId = todayWork.Id;
+                        StartWorkTimer();
                     }
-
-                    isCheckedIn = latestWork.IsWorking;
-                    todayTotal = TimeSpan.FromSeconds(latestWork.TodayTotalSeconds);
-                    weekTotal = TimeSpan.FromSeconds(latestWork.WeekTotalSeconds);
-                    workStartTime = latestWork.CheckinTime;
+                    else
+                    {
+                        workStartTime = null;
+                        currentWorkId = null;
+                    }
                 }
                 else
                 {
-                    // === CASE B: 오늘 기록이 없는 경우 (앱 재실행 시 오늘 첫 출근 전) ===
-                    // [추가] 어제까지의 기록을 조회해서 '이번 주 누적 시간'을 불러와야 함
-
-                    var lastResponse = await supabase.From<Work>()
+                    // 🔹 오늘 데이터 없으면 → 가장 최근 데이터로 주간 누적만 복구
+                    var lastRes = await supabase.From<Work>()
                         .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Id)
+                        .Order("date", Supabase.Postgrest.Constants.Ordering.Descending)
                         .Order("id", Supabase.Postgrest.Constants.Ordering.Descending)
                         .Limit(1)
                         .Get();
 
-                    var lastWork = lastResponse.Models.FirstOrDefault();
+                    var lastWork = lastRes.Models.FirstOrDefault();
 
-                    if (lastWork != null && IsSameWeek(lastWork.Date, DateTime.Today))
-                    {
-                        // 지난 기록이 이번 주라면 누적 시간 이어받기
+                    if (lastWork != null && IsSameWeekString(lastWork.Date, todayStr))
                         weekTotal = TimeSpan.FromSeconds(lastWork.WeekTotalSeconds);
-                    }
                     else
-                    {
-                        // 지난주 기록이거나 기록이 아예 없으면 0
                         weekTotal = TimeSpan.Zero;
-                    }
 
-                    // 오늘은 아직 근무 전
-                    isCheckedIn = false;
                     todayTotal = TimeSpan.Zero;
+                    isCheckedIn = false;
                     workStartTime = null;
+                    currentWorkId = null;
                 }
             }
             catch (Exception ex)
@@ -208,20 +207,38 @@ namespace Police_Intranet
                 MessageBox.Show($"데이터 로드 중 오류 발생: {ex.Message}");
             }
 
-            // UI 업데이트 (UI 스레드에서 실행되도록 Invoke 확인)
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new Action(() =>
-                {
-                    btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
-                    UpdateLabels();
-                }));
-            }
-            else
-            {
-                btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
-                UpdateLabels();
-            }
+            btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
+            UpdateLabels();
+        }
+
+        private bool IsSameWeekString(string d1, string d2)
+        {
+            DateTime dt1 = DateTime.Parse(d1);
+            DateTime dt2 = DateTime.Parse(d2);
+            return IsSameWeek(dt1, dt2);
+        }
+
+
+        public async Task RefreshWorkStatus()
+        {
+            await InitializeSupabaseAndStatusAsync();
+        }
+
+
+        private void StartWorkTimer()
+        {
+            workTimer?.Stop();
+            workTimer?.Dispose();
+
+            workTimer = new WinTimer();  // ⭐ 별칭 사용
+            workTimer.Interval = 1000;
+            workTimer.Tick += WorkTimer_Tick;
+            workTimer.Start();
+        }
+
+        private void WorkTimer_Tick(object sender, EventArgs e)
+        {
+            UpdateWorkTimeLabel();
         }
 
         private bool IsSameWeek(DateTime date1, DateTime date2)
@@ -232,17 +249,16 @@ namespace Police_Intranet
             return d1 == d2;
         }
 
-
         private async Task ToggleWorkStatusAsync()
         {
             DateTime now = DateTime.Now;
-            string todayStr = todayDate.ToString("yyyy-MM-dd");
+            string todayStr = now.ToString("yyyy-MM-dd");
 
             try
             {
                 if (!isCheckedIn)
                 {
-                    // === 출근 처리 ===
+                    // ─── 출근 처리 ───
                     isCheckedIn = true;
                     btnToggleWork.Text = "퇴근";
                     workStartTime = now;
@@ -250,23 +266,34 @@ namespace Police_Intranet
                     var newWork = new Work
                     {
                         UserId = currentUser.Id,
-                        Date = todayDate, // DateTime 타입 그대로 사용 가능
+                        Date = todayStr,
                         CheckinTime = now,
-                        CheckoutTime = null,
                         IsWorking = true,
                         TodayTotalSeconds = (long)todayTotal.TotalSeconds,
                         WeekTotalSeconds = (long)weekTotal.TotalSeconds
                     };
 
-                    await supabase.From<Work>().Insert(newWork);
+                    var res = await supabase.From<Work>().Insert(newWork);
+                    currentWorkId = res.Models.First().Id;
 
+                    // ─── 출근 웹훅 전송 ───
                     if (workWebhook != null)
-                        await workWebhook.SendWorkLogAsync(currentUser.Username, true, currentUser, now, null);
+                    {
+                        try
+                        {
+                            await workWebhook.SendWorkLogAsync(currentUser.Username, true, currentUser, now, null);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"웹훅 전송 실패(출근): {ex.Message}");
+                        }
+                    }
                 }
                 else
                 {
-                    // === 퇴근 처리 ===
-                    if (!workStartTime.HasValue) workStartTime = now;
+                    // ─── 퇴근 처리 ───
+                    if (currentWorkId == null)
+                        throw new Exception("근무 ID 없음");
 
                     isCheckedIn = false;
                     btnToggleWork.Text = "출근";
@@ -275,35 +302,39 @@ namespace Police_Intranet
                     todayTotal += worked;
                     weekTotal += worked;
 
-                    // 현재 '근무 중'인 항목을 찾아 업데이트
-                    // Match를 사용하여 WHERE 조건 설정 (user_id, date, is_working=true)
                     await supabase.From<Work>()
+                        .Where(x => x.Id == currentWorkId.Value)
                         .Set(x => x.CheckoutTime, now)
                         .Set(x => x.IsWorking, false)
                         .Set(x => x.TodayTotalSeconds, (long)todayTotal.TotalSeconds)
                         .Set(x => x.WeekTotalSeconds, (long)weekTotal.TotalSeconds)
-                        .Match(new Dictionary<string, string>
-                        {
-                            { "user_id", currentUser.Id.ToString() },
-                            { "date", todayStr },
-                            { "is_working", "true" }
-                        })
                         .Update();
 
+                    // ─── 퇴근 웹훅 전송 ───
                     if (workWebhook != null)
-                        await workWebhook.SendWorkLogAsync(currentUser.Username, false, currentUser, workStartTime.Value, now);
+                    {
+                        try
+                        {
+                            await workWebhook.SendWorkLogAsync(currentUser.Username, false, currentUser, workStartTime.Value, now);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"웹훅 전송 실패(퇴근): {ex.Message}");
+                        }
+                    }
 
                     workStartTime = null;
+                    currentWorkId = null;
                 }
 
                 UpdateLabels();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"상태 변경 중 오류 발생: {ex.Message}");
-                // 에러 발생 시 상태 롤백 로직이 필요할 수 있음
+                MessageBox.Show(ex.Message);
             }
         }
+
 
         private void UpdateWorkTimeLabel()
         {
@@ -320,7 +351,7 @@ namespace Police_Intranet
             if (isCheckedIn && workStartTime.HasValue)
                 displayWeek += now - workStartTime.Value;
 
-            lblWeek.Text = $"이번주 근무시간: {displayWeek.Hours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
+            lblWeek.Text = $"금주 근무시간: {displayWeek.Hours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
             lblWeek.Location = new Point(this.Width / 2 - lblWeek.PreferredWidth / 2, lblWeek.Location.Y);
         }
 

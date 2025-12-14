@@ -28,17 +28,28 @@ namespace Police_Intranet
         private TextBox txtName;
         private TextBox txtRank;
 
+        private Main main;
+
         private int selectedPk = -1;   // 선택된 유저의 PK 저장
 
-        public AdminControl(Supabase.Client supabaseClient)
+        public AdminControl(Supabase.Client supabaseClient, Main main)
         {
             this.client = supabaseClient ?? throw new ArgumentNullException(nameof(supabaseClient));
 
+            _ = client.InitializeAsync();
             InitializeComponent();
             InitializeUI();
 
             _ = LoadAllDataAsync();
+            this.main = main;
         }
+
+        public async Task InitializeAsync()
+        {
+            await client.InitializeAsync();
+            await LoadAllDataAsync();
+        }
+
 
         private void InitializeUI()
         {
@@ -395,32 +406,96 @@ namespace Police_Intranet
         {
             lbTimes.Items.Clear();
 
-            var resp = await client.From<User>()
-                                   .Where(u => u.IsApproved == true)
-                                   .Get();
-
-            foreach (var u in resp.Models)
+            try
             {
-                long week = u.WeekTotalSeconds ?? 0;
-                TimeSpan t = TimeSpan.FromSeconds(week);
+                // 이번 주 시작/끝 계산 (월요일 ~ 일요일)
+                DateTime today = DateTime.Today;
+                int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+                DateTime startOfWeek = today.AddDays(-diff); // 이번 주 월요일
+                DateTime endOfWeek = startOfWeek.AddDays(6); // 이번 주 일요일
 
-                long totalHours = (long)t.TotalHours;
+                // Work 테이블 전체 가져오기
+                var workResp = await client.From<Work>().Get();
 
-                lbTimes.Items.Add($"{u.Username} | {totalHours}시간 {t.Minutes}분");
+                // 이번 주 데이터 필터링
+                var weeklyWorks = workResp.Models
+                    .Where(w =>
+                    {
+                        if (DateTime.TryParse(w.Date, out DateTime workDate))
+                        {
+                            return workDate.Date >= startOfWeek && workDate.Date <= endOfWeek;
+                        }
+                        return false;
+                    });
+
+                // 유저별 총 합계 계산
+                var weekSums = weeklyWorks
+                    .GroupBy(w => w.UserId)
+                    .Select(g => new
+                    {
+                        UserId = g.Key,
+                        TotalSeconds = g.Sum(x => x.WeekTotalSeconds)
+                    })
+                    .OrderByDescending(x => x.TotalSeconds);
+
+                foreach (var sum in weekSums)
+                {
+                    // User 테이블에서 이름 가져오기
+                    var userResp = await client.From<User>()
+                                               .Where(u => u.Id == sum.UserId)
+                                               .Get();
+                    var user = userResp.Models.FirstOrDefault();
+                    if (user != null)
+                    {
+                        TimeSpan t = TimeSpan.FromSeconds(sum.TotalSeconds);
+                        lbTimes.Items.Add($"{user.Username} | {t.Hours}시간 {t.Minutes}분 {t.Seconds}초");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"주간 근무 시간 로드 실패: {ex.Message}");
             }
         }
 
         private async Task ResetWeekTimeAsync()
         {
-            var resp = await client.From<User>().Get();
-            foreach (var u in resp.Models)
+            try
             {
-                await client.From<User>()
-                    .Where(x => x.Id == u.Id)
-                    .Update(u.GetWeekResetCopy());
-            }
+                DateTime today = DateTime.Today;
+                int diff = (int)today.DayOfWeek - (int)DayOfWeek.Monday;
+                if (diff < 0) diff += 7;
+                DateTime weekStart = today.AddDays(-diff);
+                DateTime weekEnd = weekStart.AddDays(7).AddSeconds(-1);
 
-            await LoadWeekTimesAsync();
+                // Work 테이블 전체 가져오기
+                var resp = await client.From<Work>().Get();
+
+                foreach (var work in resp.Models)
+                {
+                    if (DateTime.TryParse(work.Date, out DateTime workDate))
+                    {
+                        if (workDate >= weekStart && workDate <= weekEnd)
+                        {
+                            work.WeekTotalSeconds = 0;
+                            await client.From<Work>()
+                                        .Where(w => w.Id == work.Id)
+                                        .Update(work);
+                        }
+                    }
+                }
+
+                await LoadWeekTimesAsync();
+                await main.Mypage.RefreshWorkStatus();
+
+                MessageBox.Show("이번 주 주간 출근 시간이 초기화되었습니다.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("주간 출근 시간 초기화 실패: " + ex.Message);
+            }
         }
+
+
     }
 }
