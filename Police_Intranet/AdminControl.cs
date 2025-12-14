@@ -29,10 +29,11 @@ namespace Police_Intranet
         private TextBox txtRank;
 
         private Main main;
+        private MypageControl mypageControl;
 
-        private int selectedPk = -1;   // 선택된 유저의 PK 저장
+        private int selectedPk = -1;
 
-        public AdminControl(Supabase.Client supabaseClient, Main main)
+        public AdminControl(Supabase.Client supabaseClient, Main main, MypageControl mypageControl)
         {
             this.client = supabaseClient ?? throw new ArgumentNullException(nameof(supabaseClient));
 
@@ -42,6 +43,7 @@ namespace Police_Intranet
 
             _ = LoadAllDataAsync();
             this.main = main;
+            this.mypageControl = mypageControl;
         }
 
         public async Task InitializeAsync()
@@ -49,7 +51,6 @@ namespace Police_Intranet
             await client.InitializeAsync();
             await LoadAllDataAsync();
         }
-
 
         private void InitializeUI()
         {
@@ -68,65 +69,21 @@ namespace Police_Intranet
             table.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
             // ─ 회원가입 대기 ─
-            panelSignupWaiting = new Panel()
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(30, 30, 30),
-                Padding = new Padding(10)
-            };
-            panelSignupWaiting.Controls.Add(new Label()
-            {
-                Text = "회원가입 대기 목록",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(80, 10),
-                AutoSize = true
-            });
+            panelSignupWaiting = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
+            panelSignupWaiting.Controls.Add(new Label() { Text = "회원가입 대기 목록", ForeColor = Color.White, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(80, 10), AutoSize = true });
 
-            lbWaiting = new ListBox()
-            {
-                Location = new Point(50, 50),
-                Size = new Size(250, 300),
-                BackColor = Color.FromArgb(50, 50, 50),
-                ForeColor = Color.White
-            };
+            lbWaiting = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             panelSignupWaiting.Controls.Add(lbWaiting);
 
-            btnApprove = new Button()
-            {
-                Text = "가입 승인",
-                Location = new Point(120, 360),
-                Size = new Size(100, 35),
-                BackColor = Color.FromArgb(70, 70, 70),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
+            btnApprove = new Button() { Text = "가입 승인", Location = new Point(120, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnApprove.Click += BtnApprove_Click;
             panelSignupWaiting.Controls.Add(btnApprove);
 
             // ─ 유저 관리 ─
-            panelUserlist = new Panel()
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(30, 30, 30),
-                Padding = new Padding(10)
-            };
-            panelUserlist.Controls.Add(new Label()
-            {
-                Text = "전체 유저 목록",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(100, 10),
-                AutoSize = true
-            });
+            panelUserlist = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
+            panelUserlist.Controls.Add(new Label() { Text = "전체 유저 목록", ForeColor = Color.White, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(100, 10), AutoSize = true });
 
-            lbUsers = new ListBox()
-            {
-                Location = new Point(20, 50),
-                Size = new Size(230, 300),
-                BackColor = Color.FromArgb(50, 50, 50),
-                ForeColor = Color.White
-            };
+            lbUsers = new ListBox() { Location = new Point(20, 50), Size = new Size(230, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             lbUsers.SelectedIndexChanged += LbUsers_SelectedIndexChanged;
             panelUserlist.Controls.Add(lbUsers);
 
@@ -134,68 +91,25 @@ namespace Police_Intranet
             txtName = new TextBox() { Location = new Point(260, 90), Size = new Size(120, 25) };
             txtRank = new TextBox() { Location = new Point(260, 130), Size = new Size(120, 25) };
 
-            // panelUserlist.Controls.Add(txtUserId);
             panelUserlist.Controls.Add(txtName);
             panelUserlist.Controls.Add(txtRank);
 
-            btnUpdate = new Button()
-            {
-                Text = "저장",
-                Location = new Point(260, 170),
-                Size = new Size(120, 35),
-                BackColor = Color.FromArgb(70, 70, 70),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
+            btnUpdate = new Button() { Text = "저장", Location = new Point(260, 170), Size = new Size(120, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnUpdate.Click += async (s, e) => await BtnUpdate_ClickAsync();
             panelUserlist.Controls.Add(btnUpdate);
 
-            btnDelete = new Button()
-            {
-                Text = "삭제",
-                Location = new Point(260, 220),
-                Size = new Size(120, 35),
-                BackColor = Color.FromArgb(150, 50, 50),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
+            btnDelete = new Button() { Text = "삭제", Location = new Point(260, 220), Size = new Size(120, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnDelete.Click += async (s, e) => await BtnDelete_ClickAsync();
             panelUserlist.Controls.Add(btnDelete);
 
             // ─ 주간 근무시간 조회 ─
-            panelWeekTime = new Panel()
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(30, 30, 30),
-                Padding = new Padding(10)
-            };
-            panelWeekTime.Controls.Add(new Label()
-            {
-                Text = "주간 출근시간 조회",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(100, 10),
-                AutoSize = true
-            });
+            panelWeekTime = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
+            panelWeekTime.Controls.Add(new Label() { Text = "주간 출근시간 조회", ForeColor = Color.White, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(100, 10), AutoSize = true });
 
-            lbTimes = new ListBox()
-            {
-                Location = new Point(50, 50),
-                Size = new Size(250, 300),
-                BackColor = Color.FromArgb(50, 50, 50),
-                ForeColor = Color.White
-            };
+            lbTimes = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             panelWeekTime.Controls.Add(lbTimes);
 
-            Button btnResetWeek = new Button()
-            {
-                Text = "초기화",
-                Location = new Point(120, 360),
-                Size = new Size(100, 35),
-                BackColor = Color.FromArgb(70, 70, 70),
-                ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
-            };
+            Button btnResetWeek = new Button() { Text = "초기화", Location = new Point(120, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnResetWeek.Click += async (s, e) =>
             {
                 if (MessageBox.Show("모든 유저의 주간 출근시간을 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo) == DialogResult.Yes)
@@ -219,7 +133,6 @@ namespace Police_Intranet
             await LoadWeekTimesAsync();
         }
 
-        // ─ 회원가입 대기 목록 로드 ─
         private async Task LoadWaitingUsersAsync()
         {
             lbWaiting.Items.Clear();
@@ -229,7 +142,6 @@ namespace Police_Intranet
                 lbWaiting.Items.Add($"{u.Username} | {u.Rank}");
         }
 
-        // ─ 회원가입 승인 ─
         private async void BtnApprove_Click(object sender, EventArgs e)
         {
             if (lbWaiting.SelectedItem == null)
@@ -238,15 +150,11 @@ namespace Police_Intranet
                 return;
             }
 
-            // 선택된 항목에서 Username 추출
             string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
 
             try
             {
-                // 사용자 조회
-                var users = await client.From<User>()
-                                               .Where(u => u.Username == selectedUsername)
-                                               .Get();
+                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
                 var existingUser = users.Models.FirstOrDefault();
 
                 if (existingUser == null)
@@ -255,19 +163,11 @@ namespace Police_Intranet
                     return;
                 }
 
-                // 승인 처리
                 existingUser.IsApproved = true;
-
-                await client.From<User>()
-                            .Where(u => u.Username == selectedUsername)
-                            .Update(existingUser);
+                await client.From<User>().Where(u => u.Username == selectedUsername).Update(existingUser);
 
                 MessageBox.Show("승인이 완료되었습니다.");
-
-                // UI 갱신
-                await LoadWaitingUsersAsync();
-                await LoadAllUsersAsync();
-                await LoadWeekTimesAsync();
+                await LoadAllDataAsync();
             }
             catch (Exception ex)
             {
@@ -275,18 +175,13 @@ namespace Police_Intranet
             }
         }
 
-
-        // ─ 전체 유저 목록 로드 ─
         private async Task LoadAllUsersAsync()
         {
             lbUsers.Items.Clear();
             var resp = await client.From<User>().Get();
 
             foreach (var u in resp.Models.Where(u => u.IsApproved == true))
-            {
-                // UI에는 PK 표시 안 함
                 lbUsers.Items.Add($"{u.Username} | {u.Rank}");
-            }
         }
 
         private async void LbUsers_SelectedIndexChanged(object sender, EventArgs e)
@@ -296,7 +191,7 @@ namespace Police_Intranet
             var p = lbUsers.SelectedItem.ToString().Split('|');
             string username = p[0].Trim();
 
-            txtUserId.Text = ""; // UserId 컬럼 없음, 비워두거나 username 표시 가능
+            txtUserId.Text = "";
             txtName.Text = username;
             txtRank.Text = p.Length > 1 ? p[1].Trim() : "";
 
@@ -307,58 +202,44 @@ namespace Police_Intranet
         {
             try
             {
-                var response = await client.From<User>()
-                                           .Where(u => u.Username == username)
-                                           .Get();
-
+                var response = await client.From<User>().Where(u => u.Username == username).Get();
                 var user = response.Models.FirstOrDefault();
-                if (user != null)
-                    selectedPk = user.Id;
-                else
-                    selectedPk = -1;
+                selectedPk = user != null ? user.Id : -1;
             }
-            catch (Exception ex)
+            catch
             {
-                MessageBox.Show("유저 선택 중 오류: " + ex.Message);
                 selectedPk = -1;
             }
         }
 
-
-        // ─ 유저 정보 수정 ─
         private async Task BtnUpdate_ClickAsync()
         {
-            if (selectedPk <= 0)
-            {
-                MessageBox.Show("유저를 선택해주세요.");
-                return;
-            }
+            if (selectedPk <= 0) { MessageBox.Show("유저를 선택해주세요."); return; }
 
             try
             {
-                // PK 기준으로 사용자 가져오기
-                var response = await client.From<User>()
-                                           .Where(u => u.Id == selectedPk)
-                                           .Get();
-
+                var response = await client.From<User>().Where(u => u.Id == selectedPk).Get();
                 var existingUser = response.Models.FirstOrDefault();
-                if (existingUser == null)
-                {
-                    MessageBox.Show("선택된 사용자를 찾을 수 없습니다.");
-                    return;
-                }
+                if (existingUser == null) { MessageBox.Show("선택된 사용자를 찾을 수 없습니다."); return; }
 
-                // 정보 수정
+                // Supabase 업데이트
                 existingUser.Username = txtName.Text.Trim();
                 existingUser.Rank = txtRank.Text.Trim();
-
-                // 업데이트
-                await client.From<User>()
-                            .Where(u => u.Id == selectedPk)
-                            .Update(existingUser);
+                await client.From<User>().Where(u => u.Id == selectedPk).Update(existingUser);
 
                 await LoadAllUsersAsync();
                 await LoadWeekTimesAsync();
+
+                // ✅ MypageControl의 currentUser 덮어쓰기
+                if (mypageControl != null && mypageControl.CurrentUser.Id == existingUser.Id)
+                {
+                    mypageControl.CurrentUser.Username = existingUser.Username;
+                    mypageControl.CurrentUser.Rank = existingUser.Rank;
+
+                    // UI 갱신
+                    mypageControl.RefreshUserInfo();
+                }
+
                 MessageBox.Show("유저 정보가 업데이트되었습니다.");
             }
             catch (Exception ex)
@@ -367,30 +248,23 @@ namespace Police_Intranet
             }
         }
 
-        // ─ 유저 삭제 ─
+
         private async Task BtnDelete_ClickAsync()
         {
             if (selectedPk <= 0) return;
 
-            if (MessageBox.Show("선택된 유저를 삭제하시겠습니까?", "삭제 확인",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            if (MessageBox.Show("선택된 유저를 삭제하시겠습니까?", "삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
             try
             {
-                // PK 기준 삭제
-                await client.From<User>()
-                            .Where(u => u.Id == selectedPk)
-                            .Delete();
+                await client.From<User>().Where(u => u.Id == selectedPk).Delete();
 
-                // UI 초기화
                 selectedPk = -1;
                 txtName.Clear();
                 txtRank.Clear();
 
-                await LoadAllUsersAsync();
-                await LoadWaitingUsersAsync();
-                await LoadWeekTimesAsync();
+                await LoadAllDataAsync();
 
                 MessageBox.Show("유저가 삭제되었습니다.");
             }
@@ -400,50 +274,31 @@ namespace Police_Intranet
             }
         }
 
-
-        // ─ 주간 근무시간 조회 ─
         private async Task LoadWeekTimesAsync()
         {
             lbTimes.Items.Clear();
 
             try
             {
-                // 이번 주 시작/끝 계산 (월요일 ~ 일요일)
                 DateTime today = DateTime.Today;
                 int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
-                DateTime startOfWeek = today.AddDays(-diff); // 이번 주 월요일
-                DateTime endOfWeek = startOfWeek.AddDays(6); // 이번 주 일요일
+                DateTime startOfWeek = today.AddDays(-diff);
+                DateTime endOfWeek = startOfWeek.AddDays(6);
 
-                // Work 테이블 전체 가져오기
                 var workResp = await client.From<Work>().Get();
 
-                // 이번 주 데이터 필터링
                 var weeklyWorks = workResp.Models
-                    .Where(w =>
-                    {
-                        if (DateTime.TryParse(w.Date, out DateTime workDate))
-                        {
-                            return workDate.Date >= startOfWeek && workDate.Date <= endOfWeek;
-                        }
-                        return false;
-                    });
+                    .Where(w => DateTime.TryParse(w.Date, out DateTime workDate) &&
+                                workDate.Date >= startOfWeek && workDate.Date <= endOfWeek);
 
-                // 유저별 총 합계 계산
                 var weekSums = weeklyWorks
                     .GroupBy(w => w.UserId)
-                    .Select(g => new
-                    {
-                        UserId = g.Key,
-                        TotalSeconds = g.Sum(x => x.WeekTotalSeconds)
-                    })
+                    .Select(g => new { UserId = g.Key, TotalSeconds = g.Sum(x => x.WeekTotalSeconds) })
                     .OrderByDescending(x => x.TotalSeconds);
 
                 foreach (var sum in weekSums)
                 {
-                    // User 테이블에서 이름 가져오기
-                    var userResp = await client.From<User>()
-                                               .Where(u => u.Id == sum.UserId)
-                                               .Get();
+                    var userResp = await client.From<User>().Where(u => u.Id == sum.UserId).Get();
                     var user = userResp.Models.FirstOrDefault();
                     if (user != null)
                     {
@@ -468,7 +323,6 @@ namespace Police_Intranet
                 DateTime weekStart = today.AddDays(-diff);
                 DateTime weekEnd = weekStart.AddDays(7).AddSeconds(-1);
 
-                // Work 테이블 전체 가져오기
                 var resp = await client.From<Work>().Get();
 
                 foreach (var work in resp.Models)
@@ -478,15 +332,15 @@ namespace Police_Intranet
                         if (workDate >= weekStart && workDate <= weekEnd)
                         {
                             work.WeekTotalSeconds = 0;
-                            await client.From<Work>()
-                                        .Where(w => w.Id == work.Id)
-                                        .Update(work);
+                            await client.From<Work>().Where(w => w.Id == work.Id).Update(work);
                         }
                     }
                 }
 
                 await LoadWeekTimesAsync();
-                await main.Mypage.RefreshWorkStatus();
+
+                if (main != null && main.Mypage != null)
+                    await main.Mypage.RefreshWorkStatus();
 
                 MessageBox.Show("이번 주 주간 출근 시간이 초기화되었습니다.");
             }
@@ -495,7 +349,5 @@ namespace Police_Intranet
                 MessageBox.Show("주간 출근 시간 초기화 실패: " + ex.Message);
             }
         }
-
-
     }
 }

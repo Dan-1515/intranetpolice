@@ -48,12 +48,13 @@ namespace Police_Intranet
 
             // ⭐ Mypage는 딱 한 번만 생성
             Mypage = new MypageControl(_currentUser, _client, discordWebhook);
-            Admin = new AdminControl(_client, this);
+            Admin = new AdminControl(_client, this, Mypage); // CurrentUser 전달
 
             if (!DesignMode)
                 InitializeVersionLabel();
 
             this.FormClosing += Main_FormClosing;
+            this.Load += Main_Load; // Load 이벤트 연결
         }
 
         // ⭐ 앱 시작 시 한 번만 초기 데이터 로드
@@ -204,7 +205,5 @@ namespace Police_Intranet
                 Mypage = null;
             }
         }
-
-
     }
 }
