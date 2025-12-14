@@ -209,6 +209,7 @@ namespace Police_Intranet
 
             btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
             UpdateLabels();
+            await CheckAndResetDailyTimeAsync();
         }
 
         private bool IsSameWeekString(string d1, string d2)
@@ -218,6 +219,86 @@ namespace Police_Intranet
             return IsSameWeek(dt1, dt2);
         }
 
+        private async Task CheckAndResetDailyTimeAsync()
+        {
+            DateTime today = DateTime.Today;
+
+            // 오늘 날짜와 현재 저장된 todayDate 비교
+            if (todayDate != today)
+            {
+                todayDate = today;
+
+                if (!isCheckedIn)
+                {
+                    // 출근 중이 아니면 바로 초기화
+                    todayTotal = TimeSpan.Zero;
+                    workStartTime = null;
+                    UpdateWorkTimeLabel();
+
+                    // Work 테이블에 오늘 데이터 없으면 생성
+                    string todayStr = today.ToString("yyyy-MM-dd");
+                    var todayRes = await supabase.From<Work>()
+                        .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Id)
+                        .Filter("date", Supabase.Postgrest.Constants.Operator.Equals, todayStr)
+                        .Get();
+
+                    if (!todayRes.Models.Any())
+                    {
+                        var newWork = new Work
+                        {
+                            UserId = currentUser.Id,
+                            Date = todayStr,
+                            TodayTotalSeconds = 0,
+                            WeekTotalSeconds = (long)weekTotal.TotalSeconds,
+                            IsWorking = false
+                        };
+                        await supabase.From<Work>().Insert(newWork);
+                    }
+                }
+                else
+                {
+                    // 출근 중이면, 퇴근 후 30초 뒤에 초기화
+                    System.Windows.Forms.Timer resetTimer = new System.Windows.Forms.Timer
+                    {
+                        Interval = 30000 // 30초
+                    };
+
+                    resetTimer.Tick += async (s, e) =>
+                    {
+                        resetTimer.Stop();
+                        resetTimer.Dispose();
+
+                        todayTotal = TimeSpan.Zero;
+                        workStartTime = null;
+                        isCheckedIn = false;
+
+                        UpdateWorkTimeLabel();
+
+                        // Work 테이블에 오늘 데이터 없으면 생성
+                        string todayStr = today.ToString("yyyy-MM-dd");
+                        var todayRes = await supabase.From<Work>()
+                            .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Id)
+                            .Filter("date", Supabase.Postgrest.Constants.Operator.Equals, todayStr)
+                            .Get();
+
+                        if (!todayRes.Models.Any())
+                        {
+                            var newWork = new Work
+                            {
+                                UserId = currentUser.Id,
+                                Date = todayStr,
+                                TodayTotalSeconds = 0,
+                                WeekTotalSeconds = (long)weekTotal.TotalSeconds,
+                                IsWorking = false
+                            };
+                            await supabase.From<Work>().Insert(newWork);
+                        }
+                    };
+
+                    resetTimer.Start();
+                }
+            }
+        }
 
         public async Task RefreshWorkStatus()
         {
