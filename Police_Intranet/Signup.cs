@@ -18,13 +18,13 @@ namespace Police_Intranet
             this.MaximizeBox = false;
 
             // 버튼 이벤트 연결
-            btnRegister.Click += BtnRegister_Click;
-            btnSignin.Click += BtnSignin_Click;
+            // btnRegister.Click += BtnRegister_Click;
+            // btnSignin.Click += BtnSignin_Click;
 
-            // Enter 키로 회원가입
-            txtUsername.KeyDown += SignupInputs_KeyDown;
-            txtPassword.KeyDown += SignupInputs_KeyDown;
+            // Enter 키로 회원가입 가능하도록 AcceptButton 설정
+            this.AcceptButton = btnRegister;
 
+            // Load 이벤트
             this.Load += Signup_Load;
         }
 
@@ -81,7 +81,7 @@ namespace Police_Intranet
 
                 await client.From<User>().Insert(newUser);
 
-                MessageBox.Show("회원가입 완료\n관리자의 승인이 필요합니다.", "가입 대기");
+                MessageBox.Show("회원가입이 완료되었습니다.\n관리자의 승인이 필요합니다.", "가입 대기");
 
                 // 🔥 회원가입 성공 → Signup 닫고 Login으로 복귀
                 this.DialogResult = DialogResult.OK;
@@ -93,16 +93,7 @@ namespace Police_Intranet
             }
         }
 
-        // ===================== [Enter 키로 회원가입] =====================
-        private void SignupInputs_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                BtnRegister_Click(sender, e);
-                e.SuppressKeyPress = true;
-            }
-        }
-
+        // ===================== [로그인 버튼 클릭] =====================
         private void BtnSignin_Click(object sender, EventArgs e)
         {
             this.Hide();
@@ -110,6 +101,5 @@ namespace Police_Intranet
             loginForm.ShowDialog();
             this.Show();
         }
-
     }
 }

@@ -25,12 +25,14 @@ namespace Police_Intranet
             this.MinimizeBox = true;
             this.MaximizeBox = false;
 
-            btnLogin.Click += BtnLogin_Click;
-            btnRegister.Click += BtnRegister_Click;
+            // 버튼 이벤트 연결
+            // btnLogin.Click += BtnLogin_Click;
+            // btnRegister.Click += BtnRegister_Click;
 
-            txtUsername.KeyDown += LoginInputs_KeyDown;
-            txtPassword.KeyDown += LoginInputs_KeyDown;
+            // Enter 키로 로그인 가능하도록 AcceptButton 설정
+            this.AcceptButton = btnLogin;
 
+            // Load 이벤트
             this.Load += Login_Load;
         }
 
@@ -164,14 +166,15 @@ namespace Police_Intranet
             }
         }
 
-        private void LoginInputs_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                BtnLogin_Click(sender, e);
-                e.SuppressKeyPress = true;
-            }
-        }
+        // ✅ KeyDown 이벤트 삭제 → AcceptButton으로 대체
+        // private void LoginInputs_KeyDown(object sender, KeyEventArgs e)
+        // {
+        //     if (e.KeyCode == Keys.Enter)
+        //     {
+        //         BtnLogin_Click(sender, e);
+        //         e.SuppressKeyPress = true;
+        //     }
+        // }
 
         // 로그아웃 시 Main에서 Login 폼을 다시 보여주기 위해 호출
         public void ShowLogin()
