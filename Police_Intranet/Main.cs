@@ -119,7 +119,7 @@ namespace Police_Intranet
                 // 1️⃣ 먼저 자동 퇴근
                 if (Mypage != null)
                 {
-                    Mypage.ForceCheckoutIfNeededAsync().Wait();
+                    Mypage.ForceCheckoutIfNeededAsync();
                 }
             }
             catch
@@ -136,8 +136,6 @@ namespace Police_Intranet
                 }
             }
         }
-
-
 
         private void btnCalculator_Click(object sender, EventArgs e)
         {
@@ -197,8 +195,6 @@ namespace Police_Intranet
                 }
             }
         }
-
-
 
         private void InitializeVersionLabel()
         {

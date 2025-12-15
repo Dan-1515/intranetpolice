@@ -13,6 +13,7 @@ namespace Police_Intranet
     public partial class MypageControl : UserControl
     {
         private Label lblNickname;
+        private Label lblRank;
         private Button btnToggleWork;
         private Label lblWeek;
         private Label lblWorkTime;
@@ -104,6 +105,14 @@ namespace Police_Intranet
                 AutoSize = true
             };
 
+            lblRank = new Label
+            {
+                Text = $"직급: {currentUser.Rank}", // User 모델에 Rank 속성이 있어야 함
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                AutoSize = true
+            };
+
             btnToggleWork = new Button
             {
                 Text = "출근",
@@ -135,7 +144,7 @@ namespace Police_Intranet
                 Location = new Point((Width - 300) / 2, baseWeekY)
             };
 
-            Controls.AddRange(new Control[] { lblNickname, btnToggleWork, lblWorkTime, lblWeek });
+            Controls.AddRange(new Control[] { lblNickname, lblRank, btnToggleWork, lblWorkTime, lblWeek });
 
             workTimer = new WinTimer { Interval = 1000 };
             workTimer.Tick += (s, e) => UpdateWorkTimeLabel();
@@ -150,9 +159,10 @@ namespace Police_Intranet
         {
             int cx = Width / 2;
             lblNickname.Location = new Point(cx - lblNickname.Width / 2, 60);
-            btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 110);
-            lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 160);
-            lblWeek.Location = new Point(cx - lblWeek.Width / 2, 200);
+            lblRank.Location = new Point(cx - lblRank.Width / 2, 100);
+            btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 150);
+            lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 200);
+            lblWeek.Location = new Point(cx - lblWeek.Width / 2, 240);
         }
 
         private async Task ToggleWorkAsync()
