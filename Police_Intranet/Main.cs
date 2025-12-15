@@ -53,8 +53,8 @@ namespace Police_Intranet
             if (!DesignMode)
                 InitializeVersionLabel();
 
-            this.FormClosing += Main_FormClosing;
             this.Load += Main_Load; // Load 이벤트 연결
+            this.FormClosing += Main_FormClosing;
         }
 
         // ⭐ 앱 시작 시 한 번만 초기 데이터 로드
@@ -112,6 +112,32 @@ namespace Police_Intranet
                 MessageBox.Show($"마이페이지 로드 오류: {ex.Message}");
             }
         }
+        private void Main_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            try
+            {
+                // 1️⃣ 먼저 자동 퇴근
+                if (Mypage != null)
+                {
+                    Mypage.ForceCheckoutIfNeededAsync().Wait();
+                }
+            }
+            catch
+            {
+                // 종료 중 오류 무시
+            }
+            finally
+            {
+                // 2️⃣ 그 다음 정리
+                if (Mypage != null)
+                {
+                    Mypage.Dispose();
+                    Mypage = null;
+                }
+            }
+        }
+
+
 
         private void btnCalculator_Click(object sender, EventArgs e)
         {
@@ -203,13 +229,6 @@ namespace Police_Intranet
             };
         }
 
-        private void Main_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (Mypage != null)
-            {
-                Mypage.Dispose();
-                Mypage = null;
-            }
-        }
+        
     }
 }

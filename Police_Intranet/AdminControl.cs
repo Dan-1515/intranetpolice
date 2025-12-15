@@ -21,7 +21,6 @@ namespace Police_Intranet
         private ListBox lbTimes;
 
         private Button btnApprove;
-        private Button btnDeny;
         private Button btnUpdate;
         private Button btnDelete;
 
@@ -76,13 +75,9 @@ namespace Police_Intranet
             lbWaiting = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             panelSignupWaiting.Controls.Add(lbWaiting);
 
-            btnApprove = new Button() { Text = "가입 승인", Location = new Point(60, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnApprove = new Button() { Text = "가입 승인", Location = new Point(120, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnApprove.Click += BtnApprove_Click;
             panelSignupWaiting.Controls.Add(btnApprove);
-
-            btnDeny = new Button() { Text = "가입 거부", Location = new Point(180, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnDeny.Click += BtnDeny_Click;
-            panelSignupWaiting.Controls.Add(btnDeny);
 
             // ─ 유저 관리 ─
             panelUserlist = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
@@ -155,25 +150,21 @@ namespace Police_Intranet
                 return;
             }
 
-            var selectedUser = (User)lbWaiting.SelectedItem;
-
-            if (MessageBox.Show(
-                $"[{selectedUser.Username}] 가입 요청을 승인하시겠습니까?",
-                "가입 승인",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question) != DialogResult.Yes)
-            {
-                return;
-            }
+            string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
 
             try
             {
-                selectedUser.IsApproved = true;
+                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
+                var existingUser = users.Models.FirstOrDefault();
 
-                await client
-                    .From<User>()
-                    .Where(u => u.Id == selectedUser.Id)
-                    .Update(selectedUser);
+                if (existingUser == null)
+                {
+                    MessageBox.Show("선택된 사용자를 찾을 수 없습니다.");
+                    return;
+                }
+
+                existingUser.IsApproved = true;
+                await client.From<User>().Where(u => u.Username == selectedUsername).Update(existingUser);
 
                 MessageBox.Show("승인이 완료되었습니다.");
                 await LoadAllDataAsync();
@@ -183,43 +174,6 @@ namespace Police_Intranet
                 MessageBox.Show("승인 처리 실패: " + ex.Message);
             }
         }
-
-
-        private async void BtnDeny_Click(object sender, EventArgs e)
-        {
-            if (lbWaiting.SelectedItem == null)
-            {
-                MessageBox.Show("거부할 유저를 선택하세요.");
-                return;
-            }
-
-            var selectedUser = (User)lbWaiting.SelectedItem;
-
-            if (MessageBox.Show(
-                $"[{selectedUser.Username}] 가입 요청을 거부하시겠습니까?",
-                "가입 거부",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning) != DialogResult.Yes)
-            {
-                return;
-            }
-
-            try
-            {
-                await client
-                    .From<User>()
-                    .Where(u => u.Id == selectedUser.Id)
-                    .Delete();
-
-                MessageBox.Show("가입 요청이 거부되었습니다.");
-                await LoadAllDataAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("거부 처리 실패: " + ex.Message);
-            }
-        }
-
 
         private async Task LoadAllUsersAsync()
         {
@@ -277,7 +231,7 @@ namespace Police_Intranet
                 await LoadWeekTimesAsync();
 
                 // ✅ MypageControl의 currentUser 덮어쓰기
-                if (mypageControl != null && mypageControl.CurrentUser.Id == existingUser.Id)
+                if (mypageControl != null && mypageControl.currentUser.Id == existingUser.Id)
                 {
                     mypageControl.UpdateUser(existingUser);
                 }
@@ -382,7 +336,7 @@ namespace Police_Intranet
                 await LoadWeekTimesAsync();
 
                 if (main != null && main.Mypage != null)
-                    await main.Mypage.RefreshWorkStatus();
+                    main.Mypage.RefreshWorkStatus();
 
                 MessageBox.Show("이번 주 주간 출근 시간이 초기화되었습니다.");
             }
