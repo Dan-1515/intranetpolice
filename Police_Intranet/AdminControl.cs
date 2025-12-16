@@ -21,6 +21,7 @@ namespace Police_Intranet
         private ListBox lbTimes;
 
         private Button btnApprove;
+        private Button btnReject;
         private Button btnUpdate;
         private Button btnDelete;
 
@@ -75,9 +76,13 @@ namespace Police_Intranet
             lbWaiting = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             panelSignupWaiting.Controls.Add(lbWaiting);
 
-            btnApprove = new Button() { Text = "가입 승인", Location = new Point(120, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnApprove = new Button() { Text = "가입 승인", Location = new Point(70, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnApprove.Click += BtnApprove_Click;
             panelSignupWaiting.Controls.Add(btnApprove);
+
+            btnReject = new Button() { Text = "가입 거부", Location = new Point(180, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnReject.Click += async (s, e) => await BtnReject_ClickAsync();
+            panelSignupWaiting.Controls.Add(btnReject);
 
             // ─ 유저 관리 ─
             panelUserlist = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
@@ -87,7 +92,6 @@ namespace Police_Intranet
             lbUsers.SelectedIndexChanged += LbUsers_SelectedIndexChanged;
             panelUserlist.Controls.Add(lbUsers);
 
-            txtUserId = new TextBox() { Location = new Point(260, 50), Size = new Size(120, 25) };
             txtName = new TextBox() { Location = new Point(260, 90), Size = new Size(120, 25) };
             txtRank = new TextBox() { Location = new Point(260, 130), Size = new Size(120, 25) };
 
@@ -152,6 +156,10 @@ namespace Police_Intranet
 
             string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
 
+            // ✅ 승인 확인 메시지
+            if (MessageBox.Show($"{selectedUsername}님의 가입을 승인하시겠습니까?", "가입 승인 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
             try
             {
                 var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
@@ -175,6 +183,42 @@ namespace Police_Intranet
             }
         }
 
+        private async Task BtnReject_ClickAsync()
+        {
+            if (lbWaiting.SelectedItem == null)
+            {
+                MessageBox.Show("거부할 유저를 선택하세요.");
+                return;
+            }
+
+            string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
+
+            if (MessageBox.Show($"{selectedUsername}님의 가입을 거부하시겠습니까?", "가입 거부 확인", MessageBoxButtons.YesNo) != DialogResult.Yes)
+                return;
+
+            try
+            {
+                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
+                var existingUser = users.Models.FirstOrDefault();
+
+                if (existingUser == null)
+                {
+                    MessageBox.Show("선택된 사용자를 찾을 수 없습니다.");
+                    return;
+                }
+
+                // DB에서 삭제
+                await client.From<User>().Where(u => u.Id == existingUser.Id).Delete();
+
+                MessageBox.Show("가입이 거부되었습니다.");
+                await LoadAllDataAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("가입 거부 처리 실패: " + ex.Message);
+            }
+        }
+
         private async Task LoadAllUsersAsync()
         {
             lbUsers.Items.Clear();
@@ -191,7 +235,6 @@ namespace Police_Intranet
             var p = lbUsers.SelectedItem.ToString().Split('|');
             string username = p[0].Trim();
 
-            txtUserId.Text = "";
             txtName.Text = username;
             txtRank.Text = p.Length > 1 ? p[1].Trim() : "";
 
@@ -222,7 +265,6 @@ namespace Police_Intranet
                 var existingUser = response.Models.FirstOrDefault();
                 if (existingUser == null) { MessageBox.Show("선택된 사용자를 찾을 수 없습니다."); return; }
 
-                // Supabase 업데이트
                 existingUser.Username = txtName.Text.Trim();
                 existingUser.Rank = txtRank.Text.Trim();
                 await client.From<User>().Where(u => u.Id == selectedPk).Update(existingUser);
@@ -230,7 +272,6 @@ namespace Police_Intranet
                 await LoadAllUsersAsync();
                 await LoadWeekTimesAsync();
 
-                // ✅ MypageControl의 currentUser 덮어쓰기
                 if (mypageControl != null && mypageControl.currentUser.Id == existingUser.Id)
                 {
                     mypageControl.UpdateUser(existingUser);
@@ -243,7 +284,6 @@ namespace Police_Intranet
                 MessageBox.Show("유저 정보 업데이트 중 오류: " + ex.Message);
             }
         }
-
 
         private async Task BtnDelete_ClickAsync()
         {

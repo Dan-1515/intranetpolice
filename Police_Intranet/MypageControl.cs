@@ -288,6 +288,7 @@ namespace Police_Intranet
         {
             currentUser = user;
             lblNickname.Text = $"닉네임: {currentUser.Username}";
+            lblRank.Text = $"직급: {currentUser.Rank}";
             CenterUI();
         }
     }
