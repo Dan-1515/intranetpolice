@@ -112,30 +112,32 @@ namespace Police_Intranet
                 MessageBox.Show($"마이페이지 로드 오류: {ex.Message}");
             }
         }
-        private void Main_FormClosing(object sender, FormClosingEventArgs e)
+
+        private async void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
             {
-                // 1️⃣ 먼저 자동 퇴근
                 if (Mypage != null)
                 {
-                    Mypage.ForceCheckoutIfNeededAsync();
+                    // 🔥 종료 잠깐 멈춤
+                    e.Cancel = true;
+
+                    await Mypage.ForceCheckoutIfNeededAsync();
+
+                    // 🔥 웹훅 전송 시간 확보
+                    await Task.Delay(500);
+
+                    e.Cancel = false;
+                    this.FormClosing -= Main_FormClosing;
+                    this.Close();
                 }
             }
             catch
             {
-                // 종료 중 오류 무시
-            }
-            finally
-            {
-                // 2️⃣ 그 다음 정리
-                if (Mypage != null)
-                {
-                    Mypage.Dispose();
-                    Mypage = null;
-                }
+                e.Cancel = false;
             }
         }
+
 
         private void btnCalculator_Click(object sender, EventArgs e)
         {
@@ -183,8 +185,8 @@ namespace Police_Intranet
                     {
                         _currentUser = loginForm.LoggedInUser;
 
-                        // Mypage 인스턴스는 재사용, 계정만 갱신
-                        Mypage.UpdateUser(_currentUser);
+                        // Mypage 계정, 인스턴스 갱신
+                        Mypage.UpdateUserAsync(_currentUser);
 
                         this.Show();
                     }

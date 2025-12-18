@@ -274,7 +274,7 @@ namespace Police_Intranet
 
                 if (mypageControl != null && mypageControl.currentUser.Id == existingUser.Id)
                 {
-                    mypageControl.UpdateUser(existingUser);
+                    mypageControl.UpdateUserAsync(existingUser);
                 }
 
                 MessageBox.Show("유저 정보가 업데이트되었습니다.");

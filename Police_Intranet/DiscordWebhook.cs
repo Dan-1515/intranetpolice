@@ -89,9 +89,10 @@ namespace Police_Intranet.Services
         }
 
         // ===================== TimeSpan → 문자열 변환 =====================
-        private string FormatTimeSpan(TimeSpan timeSpan)
+        private string FormatTimeSpan(TimeSpan t)
         {
-            return $"{timeSpan.Days}일 {timeSpan.Hours}시간 {timeSpan.Minutes}분 {timeSpan.Seconds}초";
+            return $"{t.Days}일 {t.Hours}시간 {t.Minutes}분 {t.Seconds}초";
         }
+
     }
 }

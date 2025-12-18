@@ -22,7 +22,7 @@ namespace Police_Intranet
         private TimeSpan todayTotal = TimeSpan.Zero;
         private TimeSpan weekTotal = TimeSpan.Zero;
 
-        // 🔥 화면 계산 전용 (DB 절대 참조 금지)
+        // 🔥 화면 실시간 계산 전용
         private DateTime? runtimeWorkStart = null;
 
         private WinTimer workTimer;
@@ -82,11 +82,10 @@ namespace Police_Intranet
             {
                 todayTotal = TimeSpan.FromSeconds(todayWork.TodayTotalSeconds);
                 weekTotal = TimeSpan.FromSeconds(todayWork.WeekTotalSeconds);
-
-                // 🔥 재실행 시 절대 누적 방지
                 isCheckedIn = todayWork.IsWorking;
-                runtimeWorkStart = null;
             }
+
+            runtimeWorkStart = isCheckedIn ? todayWork.LastWorkStart : null;
 
             btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
             UpdateWorkTimeLabel();
@@ -107,7 +106,7 @@ namespace Police_Intranet
 
             lblRank = new Label
             {
-                Text = $"직급: {currentUser.Rank}", // User 모델에 Rank 속성이 있어야 함
+                Text = $"직급: {currentUser.Rank}",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 13, FontStyle.Bold),
                 AutoSize = true
@@ -123,7 +122,6 @@ namespace Police_Intranet
             };
             btnToggleWork.Click += async (s, e) => await ToggleWorkAsync();
 
-            // 🔹 위치/크기 고정 레이블
             lblWorkTime = new Label
             {
                 ForeColor = Color.White,
@@ -153,7 +151,6 @@ namespace Police_Intranet
             Resize += (s, e) => CenterUI();
             CenterUI();
         }
-
 
         private void CenterUI()
         {
@@ -216,10 +213,13 @@ namespace Police_Intranet
 
         private async Task ForceCheckoutInternalAsync(DateTime utcNow)
         {
-            if (runtimeWorkStart == null || todayWork == null) return;
+            workTimer.Stop();
 
+            if (!isCheckedIn || runtimeWorkStart == null || todayWork == null)
+                return;
+
+            // 🔥 출근 이후 실제 근무 시간 1회 누적
             TimeSpan worked = utcNow - runtimeWorkStart.Value;
-
             todayTotal += worked;
             weekTotal += worked;
 
@@ -236,15 +236,16 @@ namespace Police_Intranet
                 currentUser.Username,
                 false,
                 currentUser,
-                utcNow - worked,
+                runtimeWorkStart.Value,
                 utcNow
             );
 
             runtimeWorkStart = null;
             isCheckedIn = false;
             btnToggleWork.Text = "출근";
-        }
 
+            workTimer.Start();
+        }
 
         private void UpdateWorkTimeLabel()
         {
@@ -258,38 +259,48 @@ namespace Police_Intranet
                 displayWeek += current;
             }
 
-            lblWorkTime.Text = $"금일 근무시간: {(int)displayToday.TotalHours}시간 {displayToday.Minutes}분 {displayToday.Seconds}초";
-            lblWorkTime.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            lblWorkTime.Text =
+                $"금일 근무시간: {(int)displayToday.TotalHours}시간 {displayToday.Minutes}분 {displayToday.Seconds}초";
 
-            lblWeek.Text = $"금주 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
-            lblWeek.Font = new Font("Segoe UI", 12, FontStyle.Bold);
+            lblWeek.Text =
+                $"금주 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
         }
 
-        // 🔥 앱 종료 대응
-        public async Task ForceCheckoutAsync()
-        {
-            if (!isCheckedIn || runtimeWorkStart == null) return;
-            await ForceCheckoutInternalAsync(DateTime.UtcNow);
-        }
-
-        // Main.cs 호환
+        // 앱 종료 대비
         public async Task ForceCheckoutIfNeededAsync()
         {
-            await ForceCheckoutAsync();
+            if (isCheckedIn)
+                await ForceCheckoutInternalAsync(DateTime.UtcNow);
         }
 
-        // AdminControl 호환
-        public void RefreshWorkStatus()
+        public async Task UpdateUserAsync(User user)
         {
-            UpdateWorkTimeLabel();
-        }
+            // 🔥 이전 유저 상태 완전 초기화
+            isCheckedIn = false;
+            todayTotal = TimeSpan.Zero;
+            weekTotal = TimeSpan.Zero;
+            runtimeWorkStart = null;
+            todayWork = null;
 
-        public void UpdateUser(User user)
-        {
+            workTimer.Stop();
+
+            // 유저 교체
             currentUser = user;
             lblNickname.Text = $"닉네임: {currentUser.Username}";
             lblRank.Text = $"직급: {currentUser.Rank}";
             CenterUI();
+
+            // 🔥 새 유저 기준으로 다시 로드
+            await LoadTodayWorkAsync();
+
+            workTimer.Start();
+        }
+
+
+        // AdminControl 호환용
+        public void RefreshWorkStatus()
+        {
+            UpdateWorkTimeLabel();
         }
     }
 }
