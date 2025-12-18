@@ -96,10 +96,8 @@ namespace Police_Intranet
         // ===================== [로그인 버튼 클릭] =====================
         private void BtnSignin_Click(object sender, EventArgs e)
         {
-            this.Hide();
-            var loginForm = new Login();
-            loginForm.ShowDialog();
-            this.Show();
+            this.Close(); // 그냥 닫기
         }
+
     }
 }

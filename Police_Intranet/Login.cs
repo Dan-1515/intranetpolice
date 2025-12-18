@@ -127,14 +127,13 @@ namespace Police_Intranet
 
         private void BtnRegister_Click(object sender, EventArgs e)
         {
-            this.Hide();
             using (var signupForm = new Signup())
             {
-                var result = signupForm.ShowDialog();
-                this.Show();
-                this.BringToFront();
+                signupForm.ShowDialog(this);
+                // ❌ Hide / Show 
             }
         }
+
 
         // 로그아웃 시 Main에서 Login 폼을 다시 보여주기 위해 호출
         public void ShowLogin()
