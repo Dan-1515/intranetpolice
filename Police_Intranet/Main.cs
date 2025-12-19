@@ -30,6 +30,7 @@ namespace Police_Intranet
         {
             InitializeComponent();
             InitializeFormProperties();
+            RestoreWindowLocation();
 
             _currentUser = loggedInUser ?? throw new ArgumentNullException(nameof(loggedInUser));
             _client = client ?? throw new ArgumentNullException(nameof(client));
@@ -113,31 +114,45 @@ namespace Police_Intranet
             }
         }
 
+        private bool _isClosingHandled = false;
+
         private async void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // 이미 처리된 종료면 그대로 통과
+            if (_isClosingHandled)
+                return;
+
             try
             {
+                _isClosingHandled = true;
+
+                // 🔥 일단 종료 멈춤
+                e.Cancel = true;
+
+                // ⭐ 창 위치 저장
+                Properties.Settings.Default.WindowX = this.Location.X;
+                Properties.Settings.Default.WindowY = this.Location.Y;
+                Properties.Settings.Default.Save();
+
+                // ⭐ 자동 퇴근 + 로그 전송
                 if (Mypage != null)
                 {
-                    // 🔥 종료 잠깐 멈춤
-                    e.Cancel = true;
-
                     await Mypage.ForceCheckoutIfNeededAsync();
 
-                    // 🔥 웹훅 전송 시간 확보
-                    await Task.Delay(500);
-
-                    e.Cancel = false;
-                    this.FormClosing -= Main_FormClosing;
-                    this.Close();
+                    // 웹훅 안정성 확보 (선택)
+                    await Task.Delay(300);
                 }
+
+                // 🔥 이벤트 제거 후 실제 종료
+                this.FormClosing -= Main_FormClosing;
+                this.Close();
             }
             catch
             {
+                // 오류 나도 종료는 시킨다
                 e.Cancel = false;
             }
         }
-
 
         private void btnCalculator_Click(object sender, EventArgs e)
         {
@@ -227,6 +242,37 @@ namespace Police_Intranet
             };
         }
 
-        
+        private void RestoreWindowLocation()
+        {
+            int x = Properties.Settings.Default.WindowX;
+            int y = Properties.Settings.Default.WindowY;
+
+            if (x >= 0 && y >= 0)
+            {
+                this.StartPosition = FormStartPosition.Manual;
+                this.Location = new Point(x, y);
+
+                // 🔥 화면 밖으로 나갔을 경우 대비
+                if (!IsLocationOnScreen(this.Location))
+                {
+                    CenterToScreen();
+                }
+            }
+            else
+            {
+                CenterToScreen();
+            }
+        }
+
+        private bool IsLocationOnScreen(Point location)
+        {
+            foreach (Screen screen in Screen.AllScreens)
+            {
+                if (screen.WorkingArea.Contains(location))
+                    return true;
+            }
+            return false;
+        }
+
     }
 }

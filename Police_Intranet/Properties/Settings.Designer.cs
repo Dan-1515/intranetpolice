@@ -70,5 +70,29 @@ namespace Police_Intranet.Properties {
                 this["AutoLogin"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-1")]
+        public int WindowX {
+            get {
+                return ((int)(this["WindowX"]));
+            }
+            set {
+                this["WindowX"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-1")]
+        public int WindowY {
+            get {
+                return ((int)(this["WindowY"]));
+            }
+            set {
+                this["WindowY"] = value;
+            }
+        }
     }
 }

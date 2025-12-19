@@ -18,6 +18,16 @@ namespace Police_Intranet
         {
             InitializeComponent();
 
+            if (TempWindowPosition.LastLocation.HasValue)
+            {
+                this.StartPosition = FormStartPosition.Manual;
+                this.Location = TempWindowPosition.LastLocation.Value;
+            }
+            else
+            {
+                this.StartPosition = FormStartPosition.CenterScreen;
+            }
+
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MinimizeBox = true;
             this.MaximizeBox = false;
@@ -25,6 +35,12 @@ namespace Police_Intranet
             this.AcceptButton = btnLogin;
             this.Load += Login_Load;
         }
+
+        public static class TempWindowPosition
+        {
+            public static Point? LastLocation;
+        }
+
 
         private async void Login_Load(object sender, EventArgs e)
         {
@@ -88,7 +104,7 @@ namespace Police_Intranet
                 var user = result.Models.FirstOrDefault();
                 if (user == null)
                 {
-                    if (!autoLogin) MessageBox.Show("존재하지 않는 닉네임입니다.");
+                    if (!autoLogin) MessageBox.Show("닉네임을 확인해주세요.");
                     return;
                 }
 
@@ -149,5 +165,11 @@ namespace Police_Intranet
             Settings.Default.SavedUsername = "";
             Settings.Default.Save();
         }
+
+        private void Login_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            TempWindowPosition.LastLocation = this.Location;
+        }
+
     }
 }

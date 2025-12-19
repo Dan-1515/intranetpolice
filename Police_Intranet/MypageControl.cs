@@ -75,7 +75,6 @@ namespace Police_Intranet
             if (todayWork == null)
             {
                 todayTotal = TimeSpan.Zero;
-                weekTotal = TimeSpan.Zero;
                 isCheckedIn = false;
             }
             else
@@ -85,11 +84,41 @@ namespace Police_Intranet
                 isCheckedIn = todayWork.IsWorking;
             }
 
+            if (todayWork == null)
+            {
+                await LoadWeekFromLatestRowAsync();
+            }
+
+
             runtimeWorkStart = isCheckedIn ? todayWork.LastWorkStart : null;
 
             btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
             UpdateWorkTimeLabel();
         }
+
+        private async Task LoadWeekFromLatestRowAsync()
+        {
+            DateTime today = DateTime.Today;
+            int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
+
+            DateTime weekStart = today.AddDays(-diff);
+            DateTime weekEnd = weekStart.AddDays(7);
+
+            var res = await supabase.From<Work>()
+                .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Id)
+                .Filter("date", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, weekStart.ToString("yyyy-MM-dd"))
+                .Filter("date", Supabase.Postgrest.Constants.Operator.LessThan, weekEnd.ToString("yyyy-MM-dd"))
+                .Order("date", Supabase.Postgrest.Constants.Ordering.Descending)
+                .Limit(1)
+                .Get();
+
+            var latest = res.Models.FirstOrDefault();
+            if (latest != null)
+            {
+                weekTotal = TimeSpan.FromSeconds(latest.WeekTotalSeconds);
+            }
+        }
+
 
         private void InitializeUi()
         {
@@ -183,7 +212,7 @@ namespace Police_Intranet
                         IsWorking = true,
                         LastWorkStart = now,
                         TodayTotalSeconds = 0,
-                        WeekTotalSeconds = 0,
+                        WeekTotalSeconds = (long)weekTotal.TotalSeconds,
                         CheckinTime = now
                     });
 
@@ -260,10 +289,10 @@ namespace Police_Intranet
             }
 
             lblWorkTime.Text =
-                $"금일 근무시간: {(int)displayToday.TotalHours}시간 {displayToday.Minutes}분 {displayToday.Seconds}초";
+                $"일간 근무시간: {(int)displayToday.TotalHours}시간 {displayToday.Minutes}분 {displayToday.Seconds}초";
 
             lblWeek.Text =
-                $"금주 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
+                $"주간 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
         }
 
         // 앱 종료 대비

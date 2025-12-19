@@ -319,27 +319,36 @@ namespace Police_Intranet
                 DateTime today = DateTime.Today;
                 int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
                 DateTime startOfWeek = today.AddDays(-diff);
-                DateTime endOfWeek = startOfWeek.AddDays(6);
+                DateTime endOfWeek = startOfWeek.AddDays(7);
 
-                var workResp = await client.From<Work>().Get();
+                var workResp = await client.From<Work>()
+                    .Filter("date", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, startOfWeek.ToString("yyyy-MM-dd"))
+                    .Filter("date", Supabase.Postgrest.Constants.Operator.LessThan, endOfWeek.ToString("yyyy-MM-dd"))
+                    .Get();
 
-                var weeklyWorks = workResp.Models
-                    .Where(w => DateTime.TryParse(w.Date, out DateTime workDate) &&
-                                workDate.Date >= startOfWeek && workDate.Date <= endOfWeek);
-
-                var weekSums = weeklyWorks
+                var latestPerUser = workResp.Models
+                    .Where(w => DateTime.TryParse(w.Date, out _))
                     .GroupBy(w => w.UserId)
-                    .Select(g => new { UserId = g.Key, TotalSeconds = g.Sum(x => x.WeekTotalSeconds) })
-                    .OrderByDescending(x => x.TotalSeconds);
+                    .Select(g => g
+                        .OrderByDescending(x => x.Date)
+                        .First()
+                    )
+                    .OrderByDescending(x => x.WeekTotalSeconds);
 
-                foreach (var sum in weekSums)
+                foreach (var work in latestPerUser)
                 {
-                    var userResp = await client.From<User>().Where(u => u.Id == sum.UserId).Get();
+                    var userResp = await client.From<User>()
+                        .Where(u => u.Id == work.UserId)
+                        .Limit(1)
+                        .Get();
+
                     var user = userResp.Models.FirstOrDefault();
                     if (user != null)
                     {
-                        TimeSpan t = TimeSpan.FromSeconds(sum.TotalSeconds);
-                        lbTimes.Items.Add($"{user.Username} | {t.Hours}시간 {t.Minutes}분 {t.Seconds}초");
+                        TimeSpan t = TimeSpan.FromSeconds(work.WeekTotalSeconds);
+                        lbTimes.Items.Add(
+                            $"{user.Username} | {(int)t.TotalHours}시간 {t.Minutes}분 {t.Seconds}초"
+                        );
                     }
                 }
             }
