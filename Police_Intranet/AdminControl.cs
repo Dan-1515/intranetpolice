@@ -91,14 +91,14 @@ namespace Police_Intranet
                 Text = "마쯔다 운행 관리",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(90, 410), // 기존 라벨과 비슷하게 좌측 맞춤
+                Location = new Point(90, 410),
                 AutoSize = true
             };
             panelSignupWaiting.Controls.Add(lblRiding);
 
             lbRidingUsers = new ListBox()
             {
-                Location = new Point(50, lblRiding.Bottom + 10), // 라벨 바로 아래로
+                Location = new Point(50, lblRiding.Bottom + 10),
                 Size = new Size(250, 150),
                 BackColor = Color.FromArgb(50, 50, 50),
                 ForeColor = Color.White
@@ -108,7 +108,7 @@ namespace Police_Intranet
             btnForceRelease = new Button()
             {
                 Text = "강제 해제",
-                Location = new Point(110, lbRidingUsers.Bottom + 10), // 리스트박스 아래로 간격 유지
+                Location = new Point(110, lbRidingUsers.Bottom + 10),
                 Size = new Size(100, 35),
                 BackColor = Color.FromArgb(150, 50, 50),
                 ForeColor = Color.White,
@@ -116,7 +116,6 @@ namespace Police_Intranet
             };
             btnForceRelease.Click += async (s, e) => await BtnForceRelease_ClickAsync();
             panelSignupWaiting.Controls.Add(btnForceRelease);
-
 
             // ─ 유저 관리 ─
             panelUserlist = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
@@ -126,16 +125,16 @@ namespace Police_Intranet
             lbUsers.SelectedIndexChanged += LbUsers_SelectedIndexChanged;
             panelUserlist.Controls.Add(lbUsers);
 
-            txtName = new TextBox() { Location = new Point(260, 90), Size = new Size(120, 25) };
-            txtRank = new TextBox() { Location = new Point(260, 130), Size = new Size(120, 25) };
+            txtName = new TextBox() { Location = new Point(260, 90), Size = new Size(110, 25) };
+            txtRank = new TextBox() { Location = new Point(260, 130), Size = new Size(110, 25) };
             panelUserlist.Controls.Add(txtName);
             panelUserlist.Controls.Add(txtRank);
 
-            btnUpdate = new Button() { Text = "저장", Location = new Point(260, 170), Size = new Size(120, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnUpdate = new Button() { Text = "저장", Location = new Point(260, 170), Size = new Size(110, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnUpdate.Click += async (s, e) => await BtnUpdate_ClickAsync();
             panelUserlist.Controls.Add(btnUpdate);
 
-            btnDelete = new Button() { Text = "삭제", Location = new Point(260, 220), Size = new Size(120, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnDelete = new Button() { Text = "삭제", Location = new Point(260, 220), Size = new Size(110, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnDelete.Click += async (s, e) => await BtnDelete_ClickAsync();
             panelUserlist.Controls.Add(btnDelete);
 
@@ -146,7 +145,32 @@ namespace Police_Intranet
             lbTimes = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             panelWeekTime.Controls.Add(lbTimes);
 
-            Button btnResetWeek = new Button() { Text = "초기화", Location = new Point(120, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            // 선택 유저 주간 초기화 버튼
+            Button btnResetSelectedWeek = new Button()
+            {
+                Text = "선택 초기화",
+                Location = new Point(80, 360),
+                Size = new Size(90, 35),
+                BackColor = Color.FromArgb(150, 50, 50),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnResetSelectedWeek.Click += async (s, e) =>
+            {
+                if (lbTimes.SelectedItem == null)
+                {
+                    MessageBox.Show("초기화할 유저를 선택하세요.");
+                    return;
+                }
+                string username = lbTimes.SelectedItem.ToString().Split('|')[0].Trim();
+                var users = await client.From<User>().Where(u => u.Username == username).Get();
+                var user = users.Models.FirstOrDefault();
+                if (user != null)
+                    await ResetSelectedUserWeekTimeAsync(user.Id, user.Username);
+            };
+            panelWeekTime.Controls.Add(btnResetSelectedWeek);
+
+            Button btnResetWeek = new Button() { Text = "전체 초기화", Location = new Point(180, 360), Size = new Size(90, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnResetWeek.Click += async (s, e) =>
             {
                 if (MessageBox.Show("모든 유저의 주간 출근시간을 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo) == DialogResult.Yes)
@@ -384,7 +408,42 @@ namespace Police_Intranet
             }
         }
 
-        // ─ 탑승 중 유저 조회 ─
+        // ─ 수정된 선택 유저 주간 초기화 ─
+        private async Task ResetSelectedUserWeekTimeAsync(int userId, string username)
+        {
+            try
+            {
+                DateTime today = DateTime.Today;
+                int diff = (int)today.DayOfWeek - (int)DayOfWeek.Monday;
+                if (diff < 0) diff += 7;
+                DateTime weekStart = today.AddDays(-diff);
+                DateTime weekEnd = weekStart.AddDays(7).AddSeconds(-1);
+
+                var resp = await client.From<Work>().Where(w => w.UserId == userId).Get();
+                foreach (var work in resp.Models)
+                {
+                    if (DateTime.TryParse(work.Date, out DateTime workDate))
+                    {
+                        if (workDate >= weekStart && workDate <= weekEnd)
+                        {
+                            work.WeekTotalSeconds = 0;
+                            await client.From<Work>().Where(w => w.Id == work.Id).Update(work);
+                        }
+                    }
+                }
+
+                await LoadWeekTimesAsync();
+                if (main?.Mypage != null)
+                    main.Mypage.RefreshWorkStatus();
+
+                MessageBox.Show($"{username} 유저의 이번 주 주간 출근 시간이 초기화되었습니다.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("선택 유저 주간 초기화 실패: " + ex.Message);
+            }
+        }
+
         private async Task LoadRidingUsersAsync()
         {
             lbRidingUsers.Items.Clear();
@@ -402,7 +461,6 @@ namespace Police_Intranet
             }
         }
 
-        // ─ 강제 해제 버튼 ─
         private async Task BtnForceRelease_ClickAsync()
         {
             if (lbRidingUsers.SelectedItem == null)
@@ -425,7 +483,7 @@ namespace Police_Intranet
                     await client.From<User>().Where(u => u.Id == user.Id).Update(user);
 
                     await LoadRidingUsersAsync();
-                    await LoadAllUsersAsync(); // 보고서 탭/전체 유저 갱신
+                    await LoadAllUsersAsync();
 
                     MessageBox.Show("강제 해제가 완료되었습니다.");
                 }
