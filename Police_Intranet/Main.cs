@@ -226,7 +226,7 @@ namespace Police_Intranet
             };
 
             lblVersion.Location = new Point(
-                btnLogout.Location.X + 60,
+                btnLogout.Location.X + 70,
                 btnLogout.Location.Y + btnLogout.Height + 25
             );
 
