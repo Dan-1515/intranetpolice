@@ -146,7 +146,7 @@ namespace Police_Intranet
             lbTimes = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             panelWeekTime.Controls.Add(lbTimes);
 
-            Button btnResetWeek = new Button() { Text = "초기화", Location = new Point(120, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            Button btnResetWeek = new Button() { Text = "초기화", Location = new Point(120, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnResetWeek.Click += async (s, e) =>
             {
                 if (MessageBox.Show("모든 유저의 주간 출근시간을 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo) == DialogResult.Yes)
