@@ -145,7 +145,7 @@ namespace Police_Intranet
             {
                 Text = "출근",
                 Size = new Size(100, 40),
-                BackColor = Color.FromArgb(100, 149, 237),
+                BackColor = Color.FromArgb(100, 140, 240),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat
             };
@@ -273,7 +273,7 @@ namespace Police_Intranet
             runtimeWorkStart = null;
             isCheckedIn = false;
             btnToggleWork.Text = "출근";
-            btnToggleWork.BackColor = Color.FromArgb(100, 149, 237); // 연한 파랑
+            btnToggleWork.BackColor = Color.FromArgb(100, 140, 240); // 연한 파랑
 
             workTimer.Start();
         }
