@@ -54,6 +54,47 @@ namespace Police_Intranet
             await LoadAllDataAsync();
         }
 
+        private void ApplyHorizontalCenterAlign(ListBox lb)
+        {
+            lb.DrawMode = DrawMode.OwnerDrawFixed;
+
+            lb.DrawItem += (s, e) =>
+            {
+                if (e.Index < 0) return;
+
+                e.DrawBackground();
+
+                string text = lb.Items[e.Index].ToString();
+
+                // 🔥 스크롤바 보정
+                int scrollbarWidth = SystemInformation.VerticalScrollBarWidth;
+
+                Rectangle rect = new Rectangle(
+                    e.Bounds.X,
+                    e.Bounds.Y,
+                    e.Bounds.Width - scrollbarWidth,
+                    e.Bounds.Height
+                );
+
+                using (StringFormat sf = new StringFormat())
+                {
+                    sf.Alignment = StringAlignment.Center;
+                    sf.LineAlignment = StringAlignment.Center;
+
+                    e.Graphics.DrawString(
+                        text,
+                        lb.Font,
+                        new SolidBrush(lb.ForeColor),
+                        rect,
+                        sf
+                    );
+                }
+
+                e.DrawFocusRectangle();
+            };
+        }
+
+
         private void InitializeUI()
         {
             this.BackColor = Color.FromArgb(30, 30, 30);
@@ -76,6 +117,7 @@ namespace Police_Intranet
 
             lbWaiting = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             panelSignupWaiting.Controls.Add(lbWaiting);
+            ApplyHorizontalCenterAlign(lbWaiting);
 
             btnApprove = new Button() { Text = "가입 승인", Location = new Point(70, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnApprove.Click += BtnApprove_Click;
@@ -104,6 +146,7 @@ namespace Police_Intranet
                 ForeColor = Color.White
             };
             panelSignupWaiting.Controls.Add(lbRidingUsers);
+            ApplyHorizontalCenterAlign(lbRidingUsers);
 
             btnForceRelease = new Button()
             {
@@ -124,6 +167,7 @@ namespace Police_Intranet
             lbUsers = new ListBox() { Location = new Point(20, 50), Size = new Size(230, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             lbUsers.SelectedIndexChanged += LbUsers_SelectedIndexChanged;
             panelUserlist.Controls.Add(lbUsers);
+            ApplyHorizontalCenterAlign(lbUsers);
 
             txtName = new TextBox() { Location = new Point(260, 90), Size = new Size(110, 25) };
             txtRank = new TextBox() { Location = new Point(260, 130), Size = new Size(110, 25) };
@@ -144,6 +188,7 @@ namespace Police_Intranet
 
             lbTimes = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
             panelWeekTime.Controls.Add(lbTimes);
+            ApplyHorizontalCenterAlign(lbTimes);
 
             // 선택 유저 주간 초기화 버튼
             Button btnResetSelectedWeek = new Button()
@@ -208,7 +253,7 @@ namespace Police_Intranet
             if (lbWaiting.SelectedItem == null) { MessageBox.Show("승인할 유저를 선택하세요."); return; }
 
             string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
-            if (MessageBox.Show($"{selectedUsername}님의 가입을 승인하시겠습니까?", "가입 승인 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            if (MessageBox.Show($"[ {selectedUsername} ] 님의 가입을 승인하시겠습니까?", "가입 승인 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
 
             try
             {
@@ -233,7 +278,7 @@ namespace Police_Intranet
             if (lbWaiting.SelectedItem == null) { MessageBox.Show("거부할 유저를 선택하세요."); return; }
 
             string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
-            if (MessageBox.Show($"{selectedUsername}님의 가입을 거부하시겠습니까?", "가입 거부 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            if (MessageBox.Show($"[ {selectedUsername} ] 님의 가입을 거부하시겠습니까?", "가입 거부 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
 
             try
             {
@@ -313,8 +358,11 @@ namespace Police_Intranet
 
         private async Task BtnDelete_ClickAsync()
         {
+
+            string selectedUsername = lbUsers.SelectedItem.ToString().Split('|')[0].Trim();
+
             if (selectedPk <= 0) return;
-            if (MessageBox.Show("선택된 유저를 삭제하시겠습니까?", "삭제 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            if (MessageBox.Show($"선택된 유저 [ {selectedUsername} ] 을(를) 삭제하시겠습니까?", "삭제 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
 
             try
             {
@@ -334,12 +382,21 @@ namespace Police_Intranet
         private async Task LoadWeekTimesAsync()
         {
             lbTimes.Items.Clear();
+
             try
             {
                 DateTime today = DateTime.Today;
                 int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
                 DateTime startOfWeek = today.AddDays(-diff);
                 DateTime endOfWeek = startOfWeek.AddDays(7);
+
+                // ✅ 승인된 유저 전부 로드
+                var usersResp = await client.From<User>()
+                    .Where(u => u.IsApproved == true)
+                    .Get();
+
+                var userDict = usersResp.Models
+                    .ToDictionary(u => u.Id, u => u);
 
                 var workResp = await client.From<Work>()
                     .Filter("date", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, startOfWeek.ToString("yyyy-MM-dd"))
@@ -350,21 +407,17 @@ namespace Police_Intranet
                     .Where(w => DateTime.TryParse(w.Date, out _))
                     .GroupBy(w => w.UserId)
                     .Select(g => g.OrderByDescending(x => x.Date).First())
-                    .OrderByDescending(x => x.WeekTotalSeconds);
+                    .Where(w => userDict.ContainsKey(w.UserId)) // ✅ 승인 유저만
+                    .OrderByDescending(w => w.WeekTotalSeconds);
 
                 foreach (var work in latestPerUser)
                 {
-                    var userResp = await client.From<User>()
-                        .Where(u => u.Id == work.UserId)
-                        .Limit(1)
-                        .Get();
+                    var user = userDict[work.UserId];
+                    TimeSpan t = TimeSpan.FromSeconds(work.WeekTotalSeconds);
 
-                    var user = userResp.Models.FirstOrDefault();
-                    if (user != null)
-                    {
-                        TimeSpan t = TimeSpan.FromSeconds(work.WeekTotalSeconds);
-                        lbTimes.Items.Add($"{user.Username} | {(int)t.TotalHours}시간 {t.Minutes}분 {t.Seconds}초");
-                    }
+                    lbTimes.Items.Add(
+                        $"{user.Username} | {(int)t.TotalHours}시간 {t.Minutes}분 {t.Seconds}초"
+                    );
                 }
             }
             catch (Exception ex)
@@ -372,6 +425,7 @@ namespace Police_Intranet
                 MessageBox.Show($"주간 근무 시간 로드 실패: {ex.Message}");
             }
         }
+
 
         private async Task ResetWeekTimeAsync()
         {
@@ -471,7 +525,7 @@ namespace Police_Intranet
 
             string selectedUsername = lbRidingUsers.SelectedItem.ToString().Split('|')[0].Trim();
 
-            if (MessageBox.Show($"{selectedUsername}님의 탑승 상태를 강제 해제하시겠습니까?", "확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            if (MessageBox.Show($"[ {selectedUsername} ] 님의 탑승 상태를 강제 해제하시겠습니까?", "확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
 
             try
             {
@@ -485,7 +539,7 @@ namespace Police_Intranet
                     await LoadRidingUsersAsync();
                     await LoadAllUsersAsync();
 
-                    MessageBox.Show("강제 해제가 완료되었습니다.");
+                    MessageBox.Show("해제가 완료되었습니다.");
                 }
             }
             catch (Exception ex)

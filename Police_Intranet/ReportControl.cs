@@ -218,6 +218,7 @@ namespace Police_Intranet
                 SelectionMode = SelectionMode.MultiExtended
             };
             panelLeft.Controls.Add(lbUser);
+            ApplyHorizontalCenterAlign(lbUser);
 
             panelRight = new Panel
             {
@@ -751,6 +752,46 @@ namespace Police_Intranet
 
         }
         public event Action OnRpUpdated;
+
+        private void ApplyHorizontalCenterAlign(ListBox lb)
+        {
+            lb.DrawMode = DrawMode.OwnerDrawFixed;
+
+            lb.DrawItem += (s, e) =>
+            {
+                if (e.Index < 0) return;
+
+                e.DrawBackground();
+
+                string text = lb.Items[e.Index].ToString();
+
+                // 🔥 스크롤바 보정
+                int scrollbarWidth = SystemInformation.VerticalScrollBarWidth;
+
+                Rectangle rect = new Rectangle(
+                    e.Bounds.X,
+                    e.Bounds.Y,
+                    e.Bounds.Width - scrollbarWidth,
+                    e.Bounds.Height
+                );
+
+                using (StringFormat sf = new StringFormat())
+                {
+                    sf.Alignment = StringAlignment.Center;
+                    sf.LineAlignment = StringAlignment.Center;
+
+                    e.Graphics.DrawString(
+                        text,
+                        lb.Font,
+                        new SolidBrush(lb.ForeColor),
+                        rect,
+                        sf
+                    );
+                }
+
+                e.DrawFocusRectangle();
+            };
+        }
 
     }
 }

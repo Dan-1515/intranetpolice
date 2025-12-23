@@ -18,6 +18,13 @@ namespace Police_Intranet
 
         private User _currentUser;
         public MypageControl Mypage { get; private set; }
+
+        public ReportControl Report { get; private set; }
+
+        public SideNoticeControl SideNotice { get; private set; }
+
+        public CalculatorControl Cal { get; private set; }
+
         public AdminControl Admin { get; private set; }
 
         private Label lblVersion;
@@ -47,8 +54,11 @@ namespace Police_Intranet
                 discordWebhook = null;
             }
 
-            // ⭐ Mypage는 딱 한 번만 생성
+            // ⭐ 각 탭에 대하여 딱 한 번만 생성
             Mypage = new MypageControl(_currentUser, _client, discordWebhook);
+            Report = new ReportControl(this, _currentUser);
+            Cal = new CalculatorControl();
+            SideNotice = new SideNoticeControl();
             Admin = new AdminControl(_client, this, Mypage);
 
             if (!DesignMode)
@@ -146,19 +156,22 @@ namespace Police_Intranet
 
         private void btnCalculator_Click(object sender, EventArgs e)
         {
-            LoadControl(new CalculatorControl());
+            if (_currentUser != null)
+                LoadControl(Cal);
         }
 
         private void btnSideNotice_Click(object sender, EventArgs e)
         {
-            LoadControl(new SideNoticeControl());
+            if (_currentUser != null)
+                LoadControl(SideNotice);
         }
 
         private void btnReport_Click(object sender, EventArgs e)
         {
             if (_currentUser != null)
-                LoadControl(new ReportControl(this, _currentUser));
+                LoadControl(Report);
         }
+
 
         private async void btnAdmin_Click(object sender, EventArgs e)
         {
