@@ -17,6 +17,7 @@ namespace Police_Intranet
         private Button btnToggleWork;
         private Label lblWeek;
         private Label lblWorkTime;
+        private Label lblHireDate;
 
         private bool isCheckedIn = false;
         private TimeSpan todayTotal = TimeSpan.Zero;
@@ -141,6 +142,14 @@ namespace Police_Intranet
                 AutoSize = true
             };
 
+            lblHireDate = new Label
+            {
+                Text = $"입사일: {FormatHireDate(currentUser.CreatedAt)}",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                AutoSize = true
+            };
+
             btnToggleWork = new Button
             {
                 Text = "출근",
@@ -171,7 +180,7 @@ namespace Police_Intranet
                 Location = new Point((Width - 300) / 2, baseWeekY)
             };
 
-            Controls.AddRange(new Control[] { lblNickname, lblRank, btnToggleWork, lblWorkTime, lblWeek });
+            Controls.AddRange(new Control[] { lblNickname, lblRank, lblHireDate, btnToggleWork, lblWorkTime, lblWeek });
 
             workTimer = new WinTimer { Interval = 1000 };
             workTimer.Tick += (s, e) => UpdateWorkTimeLabel();
@@ -186,9 +195,10 @@ namespace Police_Intranet
             int cx = Width / 2;
             lblNickname.Location = new Point(cx - lblNickname.Width / 2, 60);
             lblRank.Location = new Point(cx - lblRank.Width / 2, 100);
-            btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 150);
-            lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 200);
-            lblWeek.Location = new Point(cx - lblWeek.Width / 2, 240);
+            lblHireDate.Location = new Point(cx - lblHireDate.Width / 2, 140);
+            btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 180);
+            lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 240);
+            lblWeek.Location = new Point(cx - lblWeek.Width / 2, 280);
         }
 
         private async Task ToggleWorkAsync()
@@ -297,6 +307,21 @@ namespace Police_Intranet
                 $"주간 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
         }
 
+        private string FormatHireDate(DateTime? createdAt)
+        {
+            if (!createdAt.HasValue)
+                return "알 수 없음";
+
+            // 🔥 UTC → 로컬 변환 (날짜 밀림 방지)
+            DateTime local = DateTime.SpecifyKind(
+                createdAt.Value,
+                DateTimeKind.Utc
+            ).ToLocalTime();
+
+            return local.ToString("yyyy-MM-dd");
+        }
+
+
         // 앱 종료 대비
         public async Task ForceCheckoutIfNeededAsync()
         {
@@ -319,6 +344,7 @@ namespace Police_Intranet
             currentUser = user;
             lblNickname.Text = $"닉네임: {currentUser.Username}";
             lblRank.Text = $"직급: {currentUser.Rank}";
+            lblHireDate.Text = $"입사일: {FormatHireDate(currentUser.CreatedAt)}";
             CenterUI();
 
             // 🔥 새 유저 기준으로 다시 로드

@@ -75,13 +75,14 @@ namespace Police_Intranet
                     Username = name,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                     Rank = "일반직",
+                    CreatedAt = DateTime.Now,
                     IsWorking = false,
                     IsApproved = false // 관리자 승인 필요
                 };
 
                 await client.From<User>().Insert(newUser);
 
-                MessageBox.Show("회원가입이 완료되었습니다.\n관리자의 승인이 필요합니다.", "가입 대기");
+                MessageBox.Show("회원가입이 완료되었습니다.\n\n관리자의 승인이 필요합니다.", "가입 대기");
 
                 // 🔥 회원가입 성공 → Signup 닫고 Login으로 복귀
                 this.DialogResult = DialogResult.OK;

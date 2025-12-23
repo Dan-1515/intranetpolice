@@ -49,12 +49,12 @@ namespace Police_Intranet
 
             // ⭐ Mypage는 딱 한 번만 생성
             Mypage = new MypageControl(_currentUser, _client, discordWebhook);
-            Admin = new AdminControl(_client, this, Mypage); // CurrentUser 전달
+            Admin = new AdminControl(_client, this, Mypage);
 
             if (!DesignMode)
                 InitializeVersionLabel();
 
-            this.Load += Main_Load; // Load 이벤트 연결
+            this.Load += Main_Load;
             this.FormClosing += Main_FormClosing;
         }
 
@@ -101,7 +101,6 @@ namespace Police_Intranet
             control.Visible = true;
         }
 
-        // ✅ 마이페이지: 기존 인스턴스 그대로 보여주기 (초기화 ❌)
         private void btnMypage_Click(object sender, EventArgs e)
         {
             try
@@ -118,38 +117,29 @@ namespace Police_Intranet
 
         private async void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // 이미 처리된 종료면 그대로 통과
             if (_isClosingHandled)
                 return;
 
             try
             {
                 _isClosingHandled = true;
-
-                // 🔥 일단 종료 멈춤
                 e.Cancel = true;
 
-                // ⭐ 창 위치 저장
                 Properties.Settings.Default.WindowX = this.Location.X;
                 Properties.Settings.Default.WindowY = this.Location.Y;
                 Properties.Settings.Default.Save();
 
-                // ⭐ 자동 퇴근 + 로그 전송
                 if (Mypage != null)
                 {
                     await Mypage.ForceCheckoutIfNeededAsync();
-
-                    // 웹훅 안정성 확보 (선택)
                     await Task.Delay(300);
                 }
 
-                // 🔥 이벤트 제거 후 실제 종료
                 this.FormClosing -= Main_FormClosing;
                 this.Close();
             }
             catch
             {
-                // 오류 나도 종료는 시킨다
                 e.Cancel = false;
             }
         }
@@ -199,10 +189,7 @@ namespace Police_Intranet
                     if (loginForm.ShowDialog() == DialogResult.OK)
                     {
                         _currentUser = loginForm.LoggedInUser;
-
-                        // Mypage 계정, 인스턴스 갱신
                         Mypage.UpdateUserAsync(_currentUser);
-
                         this.Show();
                     }
                     else
@@ -252,11 +239,8 @@ namespace Police_Intranet
                 this.StartPosition = FormStartPosition.Manual;
                 this.Location = new Point(x, y);
 
-                // 🔥 화면 밖으로 나갔을 경우 대비
                 if (!IsLocationOnScreen(this.Location))
-                {
                     CenterToScreen();
-                }
             }
             else
             {
@@ -272,6 +256,37 @@ namespace Police_Intranet
                     return true;
             }
             return false;
+        }
+
+        // 🔥 아이콘(로고) 더블클릭 시 앱 종료 방지
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_NCLBUTTONDBLCLK = 0x00A3;
+            const int WM_SYSCOMMAND = 0x0112;
+            const int HTSYSMENU = 3;
+            const int SC_CLOSE = 0xF060;
+
+            // 1️⃣ 아이콘 더블클릭 (구형 / 일부 환경)
+            if (m.Msg == WM_NCLBUTTONDBLCLK && m.WParam.ToInt32() == HTSYSMENU)
+            {
+                return;
+            }
+
+            // 2️⃣ 아이콘 더블클릭 → 바로 SC_CLOSE 날아오는 경우 (Win11 / .NET 8)
+            if (m.Msg == WM_SYSCOMMAND && (m.WParam.ToInt32() & 0xFFF0) == SC_CLOSE)
+            {
+                // 🔥 마우스가 아이콘 영역에 있을 때만 차단
+                Point mousePos = PointToClient(Cursor.Position);
+
+                Rectangle iconRect = new Rectangle(0, 0, SystemInformation.SmallIconSize.Width + 10, SystemInformation.CaptionHeight);
+
+                if (iconRect.Contains(mousePos))
+                {
+                    return; // 아이콘 더블클릭 종료 방지
+                }
+            }
+
+            base.WndProc(ref m);
         }
 
     }
