@@ -1,12 +1,14 @@
 ﻿using Police_Intranet.Models;
 using Police_Intranet.Properties;
 using Police_Intranet.Services;
+using Supabase;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Windows.Forms;
-using Supabase;
+using System.Reflection;
 using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Reflection;
 
 namespace Police_Intranet
 {
@@ -217,29 +219,30 @@ namespace Police_Intranet
         {
             if (leftSidebarPanel == null || btnLogout == null) return;
 
+            string rawVersion =
+                Assembly.GetExecutingAssembly()
+                        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                        .InformationalVersion
+                ?? "dadev";
+
+            // 🔥 + 뒤 커밋 해시 제거
+            string displayVersion = rawVersion.Split('+')[0];
+
             lblVersion = new Label
             {
                 AutoSize = true,
                 ForeColor = Color.LightGray,
                 Font = new Font("Segoe UI", 8F, FontStyle.Regular),
-                Text = "dadev"
+                Text = displayVersion
             };
 
             lblVersion.Location = new Point(
-                btnLogout.Location.X + 70,
+                btnLogout.Location.X + 60,
                 btnLogout.Location.Y + btnLogout.Height + 25
             );
 
             lblVersion.Anchor = AnchorStyles.Left | AnchorStyles.Bottom;
             leftSidebarPanel.Controls.Add(lblVersion);
-
-            leftSidebarPanel.Resize += (s, e) =>
-            {
-                lblVersion.Location = new Point(
-                    btnLogout.Location.X + 50,
-                    btnLogout.Location.Y + btnLogout.Height + 25
-                );
-            };
         }
 
         private void RestoreWindowLocation()

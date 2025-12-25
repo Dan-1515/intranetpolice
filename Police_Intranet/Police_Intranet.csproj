@@ -1,14 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+	<!-- 기본 설정 -->
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net8.0-windows</TargetFramework>
-		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
+		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+
 		<StartupObject>Police_Intranet.Program</StartupObject>
 		<ApplicationIcon>Properties\Resources\police_multi.ico</ApplicationIcon>
-		<SignAssembly>False</SignAssembly>
+		<SignAssembly>false</SignAssembly>
+
+		<!-- 🔥 exe 속성 → 세부정보 버전 -->
+		<Version>1.0.1</Version>
+		<!-- 속성->버전정보 1.0.0으로 표시 -->
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<!-- 메인폼 버전정보 -->
+		<InformationalVersion>dadev 1.0.0</InformationalVersion>
 	</PropertyGroup>
 
 	<!-- 🔥 exe 단독 배포 핵심 설정 -->
@@ -24,10 +34,12 @@
 		<PublishReadyToRun>false</PublishReadyToRun>
 	</PropertyGroup>
 
+	<!-- 아이콘 -->
 	<ItemGroup>
 		<Content Include="Properties\Resources\police_multi.ico" />
 	</ItemGroup>
 
+	<!-- 패키지 -->
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
@@ -38,15 +50,17 @@
 		<PackageReference Include="Supabase.Postgrest" Version="4.1.0" />
 	</ItemGroup>
 
+	<!-- 리소스 -->
 	<ItemGroup>
 		<Compile Update="Properties\Resource1.Designer.cs">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
+			<DesignTime>true</DesignTime>
+			<AutoGen>true</AutoGen>
 			<DependentUpon>Resource1.resx</DependentUpon>
 		</Compile>
+
 		<Compile Update="Properties\Settings.Designer.cs">
-			<DesignTimeSharedInput>True</DesignTimeSharedInput>
-			<AutoGen>True</AutoGen>
+			<DesignTimeSharedInput>true</DesignTimeSharedInput>
+			<AutoGen>true</AutoGen>
 			<DependentUpon>Settings.settings</DependentUpon>
 		</Compile>
 	</ItemGroup>
