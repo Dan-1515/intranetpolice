@@ -63,7 +63,7 @@ namespace Police_Intranet
         {
             await supabase.InitializeAsync();
 
-            string today = DateTime.Today.ToString("yyyy-MM-dd");
+            string today = GetKstNow().ToString("yyyy-MM-dd");
 
             var res = await supabase.From<Work>()
                 .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Id)
@@ -99,7 +99,7 @@ namespace Police_Intranet
 
         private async Task LoadWeekFromLatestRowAsync()
         {
-            DateTime today = DateTime.Today;
+            DateTime today = GetKstNow().Date;
             int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
 
             DateTime weekStart = today.AddDays(-diff);
@@ -204,7 +204,7 @@ namespace Police_Intranet
         private async Task ToggleWorkAsync()
         {
             DateTime now = DateTime.UtcNow;
-            string today = DateTime.Today.ToString("yyyy-MM-dd");
+            string today = GetKstNow().ToString("yyyy-MM-dd");
 
             if (!isCheckedIn)
             {
@@ -312,15 +312,11 @@ namespace Police_Intranet
             if (!createdAt.HasValue)
                 return "알 수 없음";
 
-            // 🔥 UTC → 로컬 변환 (날짜 밀림 방지)
-            DateTime local = DateTime.SpecifyKind(
-                createdAt.Value,
-                DateTimeKind.Utc
-            ).ToLocalTime();
+            // Supabase timestamptz → 이미 UTC
+            DateTime kst = createdAt.Value.ToLocalTime();
 
-            return local.ToString("yyyy-MM-dd");
+            return kst.ToString("yyyy-MM-dd");
         }
-
 
         // 앱 종료 대비
         public async Task ForceCheckoutIfNeededAsync()
@@ -353,11 +349,19 @@ namespace Police_Intranet
             workTimer.Start();
         }
 
-
         // AdminControl 호환용
         public void RefreshWorkStatus()
         {
             UpdateWorkTimeLabel();
         }
+
+        private static DateTime GetKstNow()
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.UtcNow,
+                TimeZoneInfo.FindSystemTimeZoneById("Korea Standard Time")
+            );
+        }
+
     }
 }

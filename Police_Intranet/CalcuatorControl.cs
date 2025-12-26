@@ -383,47 +383,47 @@ namespace Police_Intranet
             {
                 switch (crime)
                 {
-                    case "소음공해": totalFine += 5_000_000; break;
-                    case "불법 주정차": totalFine += 5_000_000; break;
-                    case "속도위반": totalFine += 5_000_000; break;
-                    case "속도위반(고속도로)": totalFine += 10_000_000; break;
-                    case "신호위반": totalFine += 5_000_000; break;
-                    case "불법유턴": totalFine += 5_000_000; break;
-                    case "역주행/차선위반": totalFine += 5_000_000; break;
-                    case "인도 주행": totalFine += 5_000_000; break;
-                    case "공공기물 파손": totalFine += 5_000_000; break;
-                    case "스턴트": totalFine += 10_000_000; break;
-                    case "차량파손": totalFine += 30_000_000; break;
-                    case "뺑소니": totalFine += 50_000_000; totalDetention += 20; break;
-                    case "난폭운전": totalFine += 30_000_000; totalDetention += 20; break;
-                    case "폭주": totalFine += 50_000_000; totalDetention += 10; break;
-                    case "도주": totalFine += 50_000_000; totalDetention += 30; break;
+                    case "소음공해": totalFine += 5_000_000; totalBailFine += 5_000_000; break;
+                    case "불법 주정차": totalFine += 5_000_000; totalBailFine += 5_000_000; break;
+                    case "속도위반": totalFine += 5_000_000; totalBailFine += 5_000_000; break;
+                    case "속도위반(고속도로)": totalFine += 10_000_000; totalBailFine += 10_000_000; break;
+                    case "신호위반": totalFine += 5_000_000; totalBailFine += 5_000_000; break;
+                    case "불법유턴": totalFine += 5_000_000; totalBailFine += 5_000_000; break;
+                    case "역주행/차선위반": totalFine += 5_000_000; totalBailFine += 5_000_000; break;
+                    case "인도 주행": totalFine += 5_000_000; totalBailFine += 5_000_000; break;
+                    case "공공기물 파손": totalFine += 5_000_000; totalBailFine += 5_000_000; break;
+                    case "스턴트": totalFine += 10_000_000; totalBailFine += 10_000_000; break;
+                    case "차량파손": totalFine += 30_000_000; totalBailFine += 30_000_000; break;
+                    case "뺑소니": totalFine += 50_000_000; totalDetention += 20; totalBailFine += 150_000_000; break;
+                    case "난폭운전": totalFine += 30_000_000; totalDetention += 20; totalBailFine += 130_000_000; break;
+                    case "폭주": totalFine += 50_000_000; totalDetention += 10; totalBailFine += 100_000_000; break;
+                    case "도주": totalFine += 50_000_000; totalDetention += 30; totalBailFine += 200_000_000; break;
                     case "수배": totalFine += 30_000_000; totalDetention += 30; break; //미정
-                    case "항공기 저공 비행": totalFine += 300_000_000; totalDetention += 60; break;
-                    case "보복운전": totalFine += 100_000_000; totalDetention += 30; break;
-                    case "미허가 항공기 운행": totalFine += 200_000_000; totalDetention += 60; break;
+                    case "항공기 저공 비행": totalFine += 300_000_000; totalDetention += 60; totalBailFine += 600_000_000; break;
+                    case "보복운전": totalFine += 100_000_000; totalDetention += 30; totalBailFine += 250_000_000; break;
+                    case "미허가 항공기 운행": totalFine += 200_000_000; totalDetention += 60; totalBailFine += 500_000_000; break;
 
 
                     case "방조/공범죄": break;
-                    case "명예훼손": totalFine += 10_000_000; totalDetention += 10; break;
-                    case "폭행": totalFine += 50_000_000; totalDetention += 20; break;
-                    case "영업 방해": totalFine += 30_000_000; totalDetention += 25; break;
-                    case "차량절도": totalFine += 50_000_000; totalDetention += 30; break;
-                    case "불법 물건 소지": totalFine += 50_000_000; totalDetention += 20; break;
-                    case "증거인멸": totalFine += 100_000_000; totalDetention += 20; break;
-                    case "불법 총기 소지": totalFine += 100_000_000; totalDetention += 20; break;
-                    case "불법 무기/물건 거래": totalFine += 50_000_000; totalDetention += 20; break;
-                    case "시민 살인": totalFine += 200_000_000; totalDetention += 30; break;
+                    case "명예훼손": totalFine += 10_000_000; totalDetention += 10; totalBailFine += 60_000_000; break;
+                    case "폭행": totalFine += 50_000_000; totalDetention += 20; totalBailFine += 150_000_000; break;
+                    case "영업 방해": totalFine += 30_000_000; totalDetention += 25; totalBailFine += 85_000_000; break;
+                    case "차량절도": totalFine += 50_000_000; totalDetention += 30; totalBailFine += 200_000_000; break;
+                    case "불법 물건 소지": totalFine += 50_000_000; totalDetention += 20; totalBailFine += 150_000_000; break;
+                    case "증거인멸": totalFine += 100_000_000; totalDetention += 20; totalBailFine += 200_000_000; break;
+                    case "불법 총기 소지": totalFine += 100_000_000; totalDetention += 20; totalBailFine += 200_000_000; break;
+                    case "불법 무기/물건 거래": totalFine += 50_000_000; totalDetention += 20; totalBailFine += 150_000_000; break;
+                    case "시민 살인": totalFine += 200_000_000; totalDetention += 30; totalBailFine += 350_000_000; break;
 
                     case "공무원 차량 절도 시도": totalFine += 50_000_000; break;
-                    case "공무원 명예훼손": totalFine += 100_000_000; totalDetention += 10; break;
-                    case "공무원 차량 파손": totalFine += 50_000_000; totalDetention += 20; break;
-                    case "공무원 사칭": totalFine += 30_000_000; totalDetention += 20; break;
-                    case "허위신고/공무집행 방해/경관 지시불이행": totalFine += 100_000_000; totalDetention += 30; break;
-                    case "국유지/사유지 침입": totalFine += 50_000_000; totalDetention += 10; break;
-                    case "공무원 폭행": totalFine += 200_000_000; totalDetention += 30; break;
-                    case "공무원 차량 절도": totalFine += 300_000_000; totalDetention += 30; break;
-                    case "공무원 살인": totalFine += 300_000_000; totalDetention += 40; break;
+                    case "공무원 명예훼손": totalFine += 100_000_000; totalDetention += 10; totalBailFine += 150_000_000; break;
+                    case "공무원 차량 파손": totalFine += 50_000_000; totalDetention += 20; totalBailFine += 150_000_000; break;
+                    case "공무원 사칭": totalFine += 30_000_000; totalDetention += 20; totalBailFine += 130_000_000; break;
+                    case "허위신고/공무집행 방해/경관 지시불이행": totalFine += 100_000_000; totalDetention += 30; totalBailFine += 250_000_000; break;
+                    case "국유지/사유지 침입": totalFine += 50_000_000; totalDetention += 10; totalBailFine += 100_000_000; break;
+                    case "공무원 폭행": totalFine += 200_000_000; totalDetention += 30; totalBailFine += 350_000_000; break;
+                    case "공무원 차량 절도": totalFine += 300_000_000; totalDetention += 30; totalBailFine += 450_000_000; break;
+                    case "공무원 살인": totalFine += 300_000_000; totalDetention += 40; totalBailFine += 500_000_000; break;
 
                         break;
                 }
