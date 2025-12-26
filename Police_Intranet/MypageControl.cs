@@ -34,6 +34,9 @@ namespace Police_Intranet
 
         private Work todayWork;
 
+        private DateTime currentKstDate;
+        private bool midnightPendingReset = false;
+
         private readonly int baseWorkTimeY = 164;
         private readonly int baseWeekY = 204;
 
@@ -92,6 +95,7 @@ namespace Police_Intranet
 
 
             runtimeWorkStart = isCheckedIn ? todayWork.LastWorkStart : null;
+            currentKstDate = GetKstNow().Date;
 
             btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
             UpdateWorkTimeLabel();
@@ -286,10 +290,40 @@ namespace Police_Intranet
             btnToggleWork.BackColor = Color.FromArgb(100, 140, 240); // 연한 파랑
 
             workTimer.Start();
+
+            if (midnightPendingReset)
+            {
+                midnightPendingReset = false;
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(10000); //10초 대기
+                    todayTotal = TimeSpan.Zero;
+                });
+            }
         }
 
-        private void UpdateWorkTimeLabel()
+        private async void UpdateWorkTimeLabel()
         {
+            DateTime kstNow = GetKstNow();
+
+            // 🔥 자정 감지 (KST 기준 날짜 변경)
+            if (kstNow.Date != currentKstDate)
+            {
+                currentKstDate = kstNow.Date;
+
+                if (isCheckedIn)
+                {
+                    // 출근 중이면 → 퇴근 후 처리 예약
+                    midnightPendingReset = true;
+                }
+                else
+                {
+                    // 퇴근 상태면 즉시 초기화
+                    todayTotal = TimeSpan.Zero;
+                    midnightPendingReset = false;
+                }
+            }
+
             TimeSpan displayToday = todayTotal;
             TimeSpan displayWeek = weekTotal;
 
