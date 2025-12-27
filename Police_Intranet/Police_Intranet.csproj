@@ -15,8 +15,8 @@
 		<!-- 🔥 exe 속성 → 세부정보 버전 -->
 		<Version>1.0.1</Version>
 		<!-- 속성->버전정보 1.0.0으로 표시 -->
-		<AssemblyVersion>1.0.0</AssemblyVersion>
-		<FileVersion>1.0.0</FileVersion>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
 		<!-- 메인폼 버전정보 -->
 		<InformationalVersion>dadev 1.0.0</InformationalVersion>
 	</PropertyGroup>
