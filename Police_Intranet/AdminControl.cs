@@ -218,7 +218,7 @@ namespace Police_Intranet
             Button btnResetWeek = new Button() { Text = "전체 초기화", Location = new Point(180, 360), Size = new Size(90, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             btnResetWeek.Click += async (s, e) =>
             {
-                if (MessageBox.Show("모든 유저의 주간 출근시간을 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                if (MessageBox.Show("모든 유저의 주간 출근시간을 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                 {
                     await ResetWeekTimeAsync();
                 }
@@ -259,7 +259,7 @@ namespace Police_Intranet
             {
                 var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
                 var existingUser = users.Models.FirstOrDefault();
-                if (existingUser == null) { MessageBox.Show("선택된 사용자를 찾을 수 없습니다."); return; }
+                if (existingUser == null) { MessageBox.Show("선택된 유저를 찾을 수 없습니다."); return; }
 
                 existingUser.IsApproved = true;
                 await client.From<User>().Where(u => u.Username == selectedUsername).Update(existingUser);
@@ -465,15 +465,31 @@ namespace Police_Intranet
         // ─ 수정된 선택 유저 주간 초기화 ─
         private async Task ResetSelectedUserWeekTimeAsync(int userId, string username)
         {
+            // 🔥 1차 확인
+            var result = MessageBox.Show(
+                $"[ {username} ] 유저의 이번 주 주간 근무시간을 초기화하시겠습니까?\n\n" +
+                "이 작업은 되돌릴 수 없습니다.",
+                "초기화 확인",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (result != DialogResult.Yes)
+                return;
+
             try
             {
                 DateTime today = DateTime.Today;
                 int diff = (int)today.DayOfWeek - (int)DayOfWeek.Monday;
                 if (diff < 0) diff += 7;
+
                 DateTime weekStart = today.AddDays(-diff);
                 DateTime weekEnd = weekStart.AddDays(7).AddSeconds(-1);
 
-                var resp = await client.From<Work>().Where(w => w.UserId == userId).Get();
+                var resp = await client.From<Work>()
+                    .Where(w => w.UserId == userId)
+                    .Get();
+
                 foreach (var work in resp.Models)
                 {
                     if (DateTime.TryParse(work.Date, out DateTime workDate))
@@ -481,22 +497,36 @@ namespace Police_Intranet
                         if (workDate >= weekStart && workDate <= weekEnd)
                         {
                             work.WeekTotalSeconds = 0;
-                            await client.From<Work>().Where(w => w.Id == work.Id).Update(work);
+                            await client.From<Work>()
+                                .Where(w => w.Id == work.Id)
+                                .Update(work);
                         }
                     }
                 }
 
                 await LoadWeekTimesAsync();
-                if (main?.Mypage != null)
-                    main.Mypage.RefreshWorkStatus();
 
-                MessageBox.Show($"{username} 유저의 이번 주 주간 출근 시간이 초기화되었습니다.");
+                if (main?.Mypage != null)
+                    await main.Mypage.ForceReloadFromDbAsync();
+
+                MessageBox.Show(
+                    $"[ {username} ] 유저의 이번 주 주간 근무 시간이 초기화되었습니다.",
+                    "초기화 완료",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
             }
             catch (Exception ex)
             {
-                MessageBox.Show("선택 유저 주간 초기화 실패: " + ex.Message);
+                MessageBox.Show(
+                    "선택 유저 주간 초기화 실패: " + ex.Message,
+                    "오류",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
             }
         }
+
 
         private async Task LoadRidingUsersAsync()
         {

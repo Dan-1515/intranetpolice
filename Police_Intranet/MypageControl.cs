@@ -397,5 +397,26 @@ namespace Police_Intranet
             );
         }
 
+        public async Task ForceReloadFromDbAsync()
+        {
+            // 🔥 타이머 중지
+            workTimer.Stop();
+
+            // 🔥 런타임 상태 완전 초기화
+            isCheckedIn = false;
+            runtimeWorkStart = null;
+            todayTotal = TimeSpan.Zero;
+            weekTotal = TimeSpan.Zero;
+            todayWork = null;
+
+            // 🔥 DB 기준으로 다시 로드
+            await LoadTodayWorkAsync();
+
+            // 🔥 UI 갱신
+            UpdateWorkTimeLabel();
+
+            workTimer.Start();
+        }
+
     }
 }
