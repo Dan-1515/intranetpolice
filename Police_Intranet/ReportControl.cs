@@ -258,7 +258,7 @@ namespace Police_Intranet
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10F)
             };
-            cbLevel.Items.AddRange(new string[] { "고위/간부직", "일반직", "특공대", "타격대", "항공팀" });
+            cbLevel.Items.AddRange(new string[] { "고위/간부직", "일반직", "특공대(SOU)", "타격대(SCP)", "항공팀(ASD)" });
             panelRight.Controls.Add(cbLevel);
 
             Label lblRP = new Label
