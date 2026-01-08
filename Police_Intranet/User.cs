@@ -83,6 +83,10 @@ namespace Police_Intranet.Models
         [JsonProperty("rp")]
         public string RP { get; set; }
 
+        [Column("rp_count")]
+        [JsonProperty("rp_count")]
+        public int RpCount { get; set; }
+
         public User GetWeekResetCopy()
         {
             return new User

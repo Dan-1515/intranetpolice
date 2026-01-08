@@ -3,578 +3,469 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Supabase;
 using Police_Intranet.Models;
+using Police_Intranet.Services;
+using Supabase;
+using WinTimer = System.Windows.Forms.Timer;
 
 namespace Police_Intranet
 {
-    public partial class AdminControl : UserControl
+    public partial class MypageControl : UserControl
     {
-        private Supabase.Client client;
+        private Label lblNickname;
+        private Label lblRank;
+        private Button btnToggleWork;
+        private Label lblWeek;
+        private Label lblWorkTime;
+        private Label lblHireDate;
 
-        private Panel panelSignupWaiting;
-        private Panel panelUserlist;
-        private Panel panelWeekTime;
+        private ListBox lbWorkRankBox;
+        private ListBox lbRpRankBox;
 
-        private ListBox lbWaiting;
-        private ListBox lbUsers;
-        private ListBox lbTimes;
-        private ListBox lbRidingUsers;
+        private bool isCheckedIn = false;
+        private TimeSpan todayTotal = TimeSpan.Zero;
+        private TimeSpan weekTotal = TimeSpan.Zero;
 
-        private Button btnApprove;
-        private Button btnReject;
-        private Button btnUpdate;
-        private Button btnDelete;
-        private Button btnForceRelease;
+        private DateTime? runtimeWorkStart = null;
+        private WinTimer workTimer;
 
-        private TextBox txtName;
-        private TextBox txtRank;
+        public User currentUser;
+        private DiscordWebhook workWebhook;
+        private Supabase.Client supabase;
 
-        private Main main;
-        private MypageControl mypageControl;
+        private Work todayWork;
+        private DateTime currentKstDate;
+        private bool midnightPendingReset = false;
 
-        private int selectedPk = -1;
+        private readonly int baseWorkTimeY = 164;
+        private readonly int baseWeekY = 204;
 
-        public AdminControl(Supabase.Client supabaseClient, Main main, MypageControl mypageControl)
+        private readonly string supabaseUrl = "https://eeyxcupedhyoatovzepr.supabase.co";
+        private readonly string supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleXhjdXBlZGh5b2F0b3Z6ZXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NDAzNjEsImV4cCI6MjA3OTIxNjM2MX0.jQKzE_ZO1t8x8heY0mqs0pttsb7R06KIGcDVOihwg-k";
+
+        public MypageControl(User user, Client client)
         {
-            this.client = supabaseClient ?? throw new ArgumentNullException(nameof(supabaseClient));
+            currentUser = user;
+            workWebhook = new DiscordWebhook(WebhookUrls.WorkLog);
 
-            _ = client.InitializeAsync();
-            InitializeComponent();
-            InitializeUI();
+            supabase = new Supabase.Client(
+                supabaseUrl,
+                supabaseKey,
+                new SupabaseOptions { AutoConnectRealtime = false }
+            );
 
-            _ = LoadAllDataAsync();
-            this.main = main;
-            this.mypageControl = mypageControl;
+            InitializeUi();
         }
 
         public async Task InitializeAsync()
         {
-            await client.InitializeAsync();
-            await LoadAllDataAsync();
+            await LoadTodayWorkAsync();
+            await LoadUserRanksAsync();
         }
 
-        private void ApplyHorizontalCenterAlign(ListBox lb)
+        private async Task LoadTodayWorkAsync()
         {
-            lb.DrawMode = DrawMode.OwnerDrawFixed;
+            await supabase.InitializeAsync();
 
-            lb.DrawItem += (s, e) =>
+            string today = GetKstNow().ToString("yyyy-MM-dd");
+
+            var res = await supabase.From<Work>()
+                .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Id)
+                .Filter("date", Supabase.Postgrest.Constants.Operator.Equals, today)
+                .Limit(1)
+                .Get();
+
+            todayWork = res.Models.FirstOrDefault();
+
+            if (todayWork == null)
             {
-                if (e.Index < 0) return;
+                todayTotal = TimeSpan.Zero;
+                isCheckedIn = false;
+            }
+            else
+            {
+                todayTotal = TimeSpan.FromSeconds(todayWork.TodayTotalSeconds);
+                weekTotal = TimeSpan.FromSeconds(todayWork.WeekTotalSeconds);
+                isCheckedIn = todayWork.IsWorking;
+            }
 
-                e.DrawBackground();
+            if (todayWork == null)
+            {
+                await LoadWeekFromLatestRowAsync();
+            }
 
-                string text = lb.Items[e.Index].ToString();
+            runtimeWorkStart = isCheckedIn ? todayWork.LastWorkStart : null;
+            currentKstDate = GetKstNow().Date;
 
-                // 🔥 스크롤바 보정
-                int scrollbarWidth = SystemInformation.VerticalScrollBarWidth;
-
-                Rectangle rect = new Rectangle(
-                    e.Bounds.X,
-                    e.Bounds.Y,
-                    e.Bounds.Width - scrollbarWidth,
-                    e.Bounds.Height
-                );
-
-                using (StringFormat sf = new StringFormat())
-                {
-                    sf.Alignment = StringAlignment.Center;
-                    sf.LineAlignment = StringAlignment.Center;
-
-                    e.Graphics.DrawString(
-                        text,
-                        lb.Font,
-                        new SolidBrush(lb.ForeColor),
-                        rect,
-                        sf
-                    );
-                }
-
-                e.DrawFocusRectangle();
-            };
+            btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
+            UpdateWorkTimeLabel();
         }
 
-
-        private void InitializeUI()
+        private async Task LoadWeekFromLatestRowAsync()
         {
-            this.BackColor = Color.FromArgb(30, 30, 30);
-            this.Dock = DockStyle.Fill;
+            DateTime today = GetKstNow().Date;
+            int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
 
-            TableLayoutPanel table = new TableLayoutPanel()
+            DateTime weekStart = today.AddDays(-diff);
+            DateTime weekEnd = weekStart.AddDays(7);
+
+            var res = await supabase.From<Work>()
+                .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, currentUser.Id)
+                .Filter("date", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, weekStart.ToString("yyyy-MM-dd"))
+                .Filter("date", Supabase.Postgrest.Constants.Operator.LessThan, weekEnd.ToString("yyyy-MM-dd"))
+                .Order("date", Supabase.Postgrest.Constants.Ordering.Descending)
+                .Limit(1)
+                .Get();
+
+            var latest = res.Models.FirstOrDefault();
+            if (latest != null)
             {
-                Dock = DockStyle.Fill,
-                ColumnCount = 3,
-                RowCount = 1,
-                Padding = new Padding(10)
-            };
-            for (int i = 0; i < 3; i++)
-                table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33f));
-            table.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+                weekTotal = TimeSpan.FromSeconds(latest.WeekTotalSeconds);
+            }
+        }
 
-            // ─ 회원가입 대기 ─
-            panelSignupWaiting = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
-            panelSignupWaiting.Controls.Add(new Label() { Text = "회원가입 대기 목록", ForeColor = Color.White, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(80, 10), AutoSize = true });
+        private void InitializeUi()
+        {
+            Dock = DockStyle.Fill;
+            BackColor = Color.FromArgb(30, 30, 30);
 
-            lbWaiting = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
-            panelSignupWaiting.Controls.Add(lbWaiting);
-            ApplyHorizontalCenterAlign(lbWaiting);
-
-            btnApprove = new Button() { Text = "가입 승인", Location = new Point(70, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnApprove.Click += BtnApprove_Click;
-            panelSignupWaiting.Controls.Add(btnApprove);
-
-            btnReject = new Button() { Text = "가입 거부", Location = new Point(180, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnReject.Click += async (s, e) => await BtnReject_ClickAsync();
-            panelSignupWaiting.Controls.Add(btnReject);
-
-            // ─ 탑승 중 유저 ─
-            Label lblRiding = new Label()
+            lblNickname = new Label
             {
-                Text = "마쯔다 운행 관리",
+                Text = $"닉네임: {currentUser.Username}",
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(90, 410),
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
                 AutoSize = true
             };
-            panelSignupWaiting.Controls.Add(lblRiding);
 
-            lbRidingUsers = new ListBox()
+            lblRank = new Label
             {
-                Location = new Point(50, lblRiding.Bottom + 10),
-                Size = new Size(250, 150),
+                Text = $"직급: {currentUser.Rank}",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                AutoSize = true
+            };
+
+            lblHireDate = new Label
+            {
+                Text = $"입사일: {FormatHireDate(currentUser.CreatedAt)}",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                AutoSize = true
+            };
+
+            btnToggleWork = new Button
+            {
+                Text = "출근",
+                Size = new Size(100, 40),
+                BackColor = Color.FromArgb(100, 140, 240),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnToggleWork.Click += async (s, e) => await ToggleWorkAsync();
+
+            lblWorkTime = new Label
+            {
+                ForeColor = Color.White,
+                AutoSize = false,
+                Width = 300,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Location = new Point((Width - 300) / 2, baseWorkTimeY)
+            };
+
+            lblWeek = new Label
+            {
+                ForeColor = Color.White,
+                AutoSize = false,
+                Width = 300,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                Location = new Point((Width - 300) / 2, baseWeekY)
+            };
+
+            // 🔹 ListBox로 변경
+            lbWorkRankBox = new ListBox
+            {
+                Width = 250,
+                Height = 220,
                 BackColor = Color.FromArgb(50, 50, 50),
-                ForeColor = Color.White
-            };
-            panelSignupWaiting.Controls.Add(lbRidingUsers);
-            ApplyHorizontalCenterAlign(lbRidingUsers);
-
-            btnForceRelease = new Button()
-            {
-                Text = "강제 해제",
-                Location = new Point(110, lbRidingUsers.Bottom + 10),
-                Size = new Size(100, 35),
-                BackColor = Color.FromArgb(150, 50, 50),
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                BorderStyle = BorderStyle.None
             };
-            btnForceRelease.Click += async (s, e) => await BtnForceRelease_ClickAsync();
-            panelSignupWaiting.Controls.Add(btnForceRelease);
 
-            // ─ 유저 관리 ─
-            panelUserlist = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
-            panelUserlist.Controls.Add(new Label() { Text = "전체 유저 목록", ForeColor = Color.White, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(100, 10), AutoSize = true });
-
-            lbUsers = new ListBox() { Location = new Point(20, 50), Size = new Size(230, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
-            lbUsers.SelectedIndexChanged += LbUsers_SelectedIndexChanged;
-            panelUserlist.Controls.Add(lbUsers);
-            ApplyHorizontalCenterAlign(lbUsers);
-
-            txtName = new TextBox() { Location = new Point(260, 90), Size = new Size(110, 25) };
-            txtRank = new TextBox() { Location = new Point(260, 130), Size = new Size(110, 25) };
-            panelUserlist.Controls.Add(txtName);
-            panelUserlist.Controls.Add(txtRank);
-
-            btnUpdate = new Button() { Text = "저장", Location = new Point(260, 170), Size = new Size(110, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnUpdate.Click += async (s, e) => await BtnUpdate_ClickAsync();
-            panelUserlist.Controls.Add(btnUpdate);
-
-            btnDelete = new Button() { Text = "삭제", Location = new Point(260, 220), Size = new Size(110, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnDelete.Click += async (s, e) => await BtnDelete_ClickAsync();
-            panelUserlist.Controls.Add(btnDelete);
-
-            // ─ 주간 근무시간 조회 ─
-            panelWeekTime = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
-            panelWeekTime.Controls.Add(new Label() { Text = "주간 출근시간 조회", ForeColor = Color.White, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(90, 10), AutoSize = true });
-
-            lbTimes = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
-            panelWeekTime.Controls.Add(lbTimes);
-            ApplyHorizontalCenterAlign(lbTimes);
-
-            // 선택 유저 주간 초기화 버튼
-            Button btnResetSelectedWeek = new Button()
+            lbRpRankBox = new ListBox
             {
-                Text = "선택 초기화",
-                Location = new Point(80, 360),
-                Size = new Size(90, 35),
-                BackColor = Color.FromArgb(150, 50, 50),
+                Width = 250,
+                Height = 220,
+                BackColor = Color.FromArgb(50, 50, 50),
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                BorderStyle = BorderStyle.None
             };
-            btnResetSelectedWeek.Click += async (s, e) =>
+
+            Controls.AddRange(new Control[]
             {
-                if (lbTimes.SelectedItem == null)
+                lblNickname, lblRank, lblHireDate, btnToggleWork, lblWorkTime, lblWeek,
+                lbWorkRankBox, lbRpRankBox
+            });
+
+            workTimer = new WinTimer { Interval = 1000 };
+            workTimer.Tick += (s, e) => UpdateWorkTimeLabel();
+            workTimer.Start();
+
+            Resize += (s, e) => CenterUI();
+            CenterUI();
+        }
+
+        private void CenterUI()
+        {
+            int cx = Width / 2;
+            lblNickname.Location = new Point(cx - lblNickname.Width / 2, 60);
+            lblRank.Location = new Point(cx - lblRank.Width / 2, 100);
+            lblHireDate.Location = new Point(cx - lblHireDate.Width / 2, 140);
+            btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 180);
+            lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 240);
+            lblWeek.Location = new Point(cx - lblWeek.Width / 2, 280);
+
+            lbWorkRankBox.Location = new Point(cx - 320, 320);
+            lbRpRankBox.Location = new Point(cx + 20, 320);
+        }
+
+        private async Task ToggleWorkAsync()
+        {
+            DateTime now = DateTime.UtcNow;
+            string today = GetKstNow().ToString("yyyy-MM-dd");
+
+            if (!isCheckedIn)
+            {
+                isCheckedIn = true;
+                runtimeWorkStart = now;
+                btnToggleWork.Text = "퇴근";
+                btnToggleWork.BackColor = Color.FromArgb(150, 50, 50);
+
+                if (todayWork == null)
                 {
-                    MessageBox.Show("초기화할 유저를 선택하세요.");
-                    return;
-                }
-                string username = lbTimes.SelectedItem.ToString().Split('|')[0].Trim();
-                var users = await client.From<User>().Where(u => u.Username == username).Get();
-                var user = users.Models.FirstOrDefault();
-                if (user != null)
-                    await ResetSelectedUserWeekTimeAsync(user.Id, user.Username);
-            };
-            panelWeekTime.Controls.Add(btnResetSelectedWeek);
-
-            Button btnResetWeek = new Button() { Text = "전체 초기화", Location = new Point(180, 360), Size = new Size(90, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnResetWeek.Click += async (s, e) =>
-            {
-                if (MessageBox.Show("모든 유저의 주간 출근시간을 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
-                {
-                    await ResetWeekTimeAsync();
-                }
-            };
-            panelWeekTime.Controls.Add(btnResetWeek);
-
-            table.Controls.Add(panelSignupWaiting, 0, 0);
-            table.Controls.Add(panelUserlist, 1, 0);
-            table.Controls.Add(panelWeekTime, 2, 0);
-
-            this.Controls.Add(table);
-        }
-
-        private async Task LoadAllDataAsync()
-        {
-            await LoadWaitingUsersAsync();
-            await LoadAllUsersAsync();
-            await LoadWeekTimesAsync();
-            await LoadRidingUsersAsync();
-        }
-
-        private async Task LoadWaitingUsersAsync()
-        {
-            lbWaiting.Items.Clear();
-            var resp = await client.From<User>().Get();
-            foreach (var u in resp.Models.Where(u => u.IsApproved == false))
-                lbWaiting.Items.Add($"{u.Username} | {u.Rank}");
-        }
-
-        private async void BtnApprove_Click(object sender, EventArgs e)
-        {
-            if (lbWaiting.SelectedItem == null) { MessageBox.Show("승인할 유저를 선택하세요."); return; }
-
-            string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
-            if (MessageBox.Show($"[ {selectedUsername} ] 님의 가입을 승인하시겠습니까?", "가입 승인 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-
-            try
-            {
-                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
-                var existingUser = users.Models.FirstOrDefault();
-                if (existingUser == null) { MessageBox.Show("선택된 유저를 찾을 수 없습니다."); return; }
-
-                existingUser.IsApproved = true;
-                await client.From<User>().Where(u => u.Username == selectedUsername).Update(existingUser);
-
-                MessageBox.Show("승인이 완료되었습니다.");
-                await LoadAllDataAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("승인 처리 실패: " + ex.Message);
-            }
-        }
-
-        private async Task BtnReject_ClickAsync()
-        {
-            if (lbWaiting.SelectedItem == null) { MessageBox.Show("거부할 유저를 선택하세요."); return; }
-
-            string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
-            if (MessageBox.Show($"[ {selectedUsername} ] 님의 가입을 거부하시겠습니까?", "가입 거부 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-
-            try
-            {
-                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
-                var existingUser = users.Models.FirstOrDefault();
-                if (existingUser == null) { MessageBox.Show("선택된 사용자를 찾을 수 없습니다."); return; }
-
-                await client.From<User>().Where(u => u.Id == existingUser.Id).Delete();
-                MessageBox.Show("가입이 거부되었습니다.");
-                await LoadAllDataAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("가입 거부 처리 실패: " + ex.Message);
-            }
-        }
-
-        private async Task LoadAllUsersAsync()
-        {
-            lbUsers.Items.Clear();
-            var resp = await client.From<User>().Get();
-            foreach (var u in resp.Models.Where(u => u.IsApproved == true))
-                lbUsers.Items.Add($"{u.Username} | {u.Rank}");
-        }
-
-        private async void LbUsers_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (lbUsers.SelectedItem == null) return;
-            var p = lbUsers.SelectedItem.ToString().Split('|');
-            string username = p[0].Trim();
-
-            txtName.Text = username;
-            txtRank.Text = p.Length > 1 ? p[1].Trim() : "";
-
-            await SetSelectedPkAsync(username);
-        }
-
-        private async Task SetSelectedPkAsync(string username)
-        {
-            try
-            {
-                var response = await client.From<User>().Where(u => u.Username == username).Get();
-                var user = response.Models.FirstOrDefault();
-                selectedPk = user != null ? user.Id : -1;
-            }
-            catch { selectedPk = -1; }
-        }
-
-        private async Task BtnUpdate_ClickAsync()
-        {
-            if (selectedPk <= 0) { MessageBox.Show("유저를 선택해주세요."); return; }
-
-            try
-            {
-                var response = await client.From<User>().Where(u => u.Id == selectedPk).Get();
-                var existingUser = response.Models.FirstOrDefault();
-                if (existingUser == null) { MessageBox.Show("선택된 사용자를 찾을 수 없습니다."); return; }
-
-                existingUser.Username = txtName.Text.Trim();
-                existingUser.Rank = txtRank.Text.Trim();
-                await client.From<User>().Where(u => u.Id == selectedPk).Update(existingUser);
-
-                await LoadAllUsersAsync();
-                await LoadWeekTimesAsync();
-                await LoadRidingUsersAsync();
-
-                if (mypageControl != null && mypageControl.currentUser.Id == existingUser.Id)
-                    mypageControl.UpdateUserAsync(existingUser);
-
-                MessageBox.Show("유저 정보가 업데이트되었습니다.");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("유저 정보 업데이트 중 오류: " + ex.Message);
-            }
-        }
-
-        private async Task BtnDelete_ClickAsync()
-        {
-
-            string selectedUsername = lbUsers.SelectedItem.ToString().Split('|')[0].Trim();
-
-            if (selectedPk <= 0) return;
-            if (MessageBox.Show($"선택된 유저 [ {selectedUsername} ] 을(를) 삭제하시겠습니까?", "삭제 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-
-            try
-            {
-                await client.From<User>().Where(u => u.Id == selectedPk).Delete();
-                selectedPk = -1;
-                txtName.Clear();
-                txtRank.Clear();
-                await LoadAllDataAsync();
-                MessageBox.Show("유저가 삭제되었습니다.");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("유저 삭제 중 오류: " + ex.Message);
-            }
-        }
-
-        private async Task LoadWeekTimesAsync()
-        {
-            lbTimes.Items.Clear();
-
-            try
-            {
-                DateTime today = DateTime.Today;
-                int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
-                DateTime startOfWeek = today.AddDays(-diff);
-                DateTime endOfWeek = startOfWeek.AddDays(7);
-
-                // ✅ 승인된 유저 전부 로드
-                var usersResp = await client.From<User>()
-                    .Where(u => u.IsApproved == true)
-                    .Get();
-
-                var userDict = usersResp.Models
-                    .ToDictionary(u => u.Id, u => u);
-
-                var workResp = await client.From<Work>()
-                    .Filter("date", Supabase.Postgrest.Constants.Operator.GreaterThanOrEqual, startOfWeek.ToString("yyyy-MM-dd"))
-                    .Filter("date", Supabase.Postgrest.Constants.Operator.LessThan, endOfWeek.ToString("yyyy-MM-dd"))
-                    .Get();
-
-                var latestPerUser = workResp.Models
-                    .Where(w => DateTime.TryParse(w.Date, out _))
-                    .GroupBy(w => w.UserId)
-                    .Select(g => g.OrderByDescending(x => x.Date).First())
-                    .Where(w => userDict.ContainsKey(w.UserId)) // ✅ 승인 유저만
-                    .OrderByDescending(w => w.WeekTotalSeconds);
-
-                foreach (var work in latestPerUser)
-                {
-                    var user = userDict[work.UserId];
-                    TimeSpan t = TimeSpan.FromSeconds(work.WeekTotalSeconds);
-
-                    lbTimes.Items.Add(
-                        $"{user.Username} | {(int)t.TotalHours}시간 {t.Minutes}분 {t.Seconds}초"
-                    );
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"주간 근무 시간 로드 실패: {ex.Message}");
-            }
-        }
-
-
-        private async Task ResetWeekTimeAsync()
-        {
-            try
-            {
-                DateTime today = DateTime.Today;
-                int diff = (int)today.DayOfWeek - (int)DayOfWeek.Monday;
-                if (diff < 0) diff += 7;
-                DateTime weekStart = today.AddDays(-diff);
-                DateTime weekEnd = weekStart.AddDays(7).AddSeconds(-1);
-
-                var resp = await client.From<Work>().Get();
-                foreach (var work in resp.Models)
-                {
-                    if (DateTime.TryParse(work.Date, out DateTime workDate))
+                    var inserted = await supabase.From<Work>().Insert(new Work
                     {
-                        if (workDate >= weekStart && workDate <= weekEnd)
-                        {
-                            work.WeekTotalSeconds = 0;
-                            await client.From<Work>().Where(w => w.Id == work.Id).Update(work);
-                        }
-                    }
+                        UserId = currentUser.Id,
+                        Date = today,
+                        IsWorking = true,
+                        LastWorkStart = now,
+                        TodayTotalSeconds = 0,
+                        WeekTotalSeconds = (long)weekTotal.TotalSeconds,
+                        CheckinTime = now
+                    });
+
+                    todayWork = inserted.Models.First();
+                }
+                else
+                {
+                    await supabase.From<Work>()
+                        .Where(x => x.Id == todayWork.Id)
+                        .Set(x => x.IsWorking, true)
+                        .Set(x => x.LastWorkStart, now)
+                        .Set(x => x.CheckinTime, now)
+                        .Update();
                 }
 
-                await LoadWeekTimesAsync();
-                if (main != null && main.Mypage != null)
-                    main.Mypage.RefreshWorkStatus();
-
-                MessageBox.Show("이번 주 주간 출근 시간이 초기화되었습니다.");
+                await workWebhook?.SendWorkLogAsync(currentUser.Username, true, currentUser, now, null);
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show("주간 출근 시간 초기화 실패: " + ex.Message);
+                await ForceCheckoutInternalAsync(now);
             }
+
+            UpdateWorkTimeLabel();
+            await LoadUserRanksAsync();
         }
 
-        // ─ 수정된 선택 유저 주간 초기화 ─
-        private async Task ResetSelectedUserWeekTimeAsync(int userId, string username)
+        private async Task ForceCheckoutInternalAsync(DateTime utcNow)
         {
-            // 🔥 1차 확인
-            var result = MessageBox.Show(
-                $"[ {username} ] 유저의 이번 주 주간 근무시간을 초기화하시겠습니까?\n\n" +
-                "이 작업은 되돌릴 수 없습니다.",
-                "초기화 확인",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Warning
+            workTimer.Stop();
+
+            if (!isCheckedIn || runtimeWorkStart == null || todayWork == null)
+                return;
+
+            TimeSpan worked = utcNow - runtimeWorkStart.Value;
+            todayTotal += worked;
+            weekTotal += worked;
+
+            await supabase.From<Work>()
+                .Where(x => x.Id == todayWork.Id)
+                .Set(x => x.IsWorking, false)
+                .Set(x => x.TodayTotalSeconds, (long)todayTotal.TotalSeconds)
+                .Set(x => x.WeekTotalSeconds, (long)weekTotal.TotalSeconds)
+                .Set(x => x.LastWorkStart, null)
+                .Set(x => x.CheckoutTime, utcNow)
+                .Update();
+
+            await workWebhook?.SendWorkLogAsync(currentUser.Username, false, currentUser, runtimeWorkStart.Value, utcNow);
+
+            runtimeWorkStart = null;
+            isCheckedIn = false;
+            btnToggleWork.Text = "출근";
+            btnToggleWork.BackColor = Color.FromArgb(100, 140, 240);
+
+            workTimer.Start();
+
+            if (midnightPendingReset)
+            {
+                midnightPendingReset = false;
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(10000);
+                    todayTotal = TimeSpan.Zero;
+                });
+            }
+
+            await LoadUserRanksAsync();
+        }
+
+        private void UpdateWorkTimeLabel()
+        {
+            DateTime kstNow = GetKstNow();
+
+            if (kstNow.Date != currentKstDate)
+            {
+                currentKstDate = kstNow.Date;
+
+                if (isCheckedIn)
+                    midnightPendingReset = true;
+                else
+                {
+                    todayTotal = TimeSpan.Zero;
+                    midnightPendingReset = false;
+                }
+            }
+
+            TimeSpan displayToday = todayTotal;
+            TimeSpan displayWeek = weekTotal;
+
+            if (isCheckedIn && runtimeWorkStart.HasValue)
+            {
+                TimeSpan current = DateTime.UtcNow - runtimeWorkStart.Value;
+                displayToday += current;
+                displayWeek += current;
+            }
+
+            lblWorkTime.Text = $"일간 근무시간: {(int)displayToday.TotalHours}시간 {displayToday.Minutes}분";
+            lblWeek.Text = $"주간 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분";
+        }
+
+        private string FormatHireDate(DateTime? createdAt)
+        {
+            if (!createdAt.HasValue)
+                return "알 수 없음";
+
+            DateTime kst = createdAt.Value.ToLocalTime();
+            return kst.ToString("yyyy-MM-dd");
+        }
+
+        public async Task ForceCheckoutIfNeededAsync()
+        {
+            if (isCheckedIn)
+                await ForceCheckoutInternalAsync(DateTime.UtcNow);
+        }
+
+        public async Task UpdateUserAsync(User user)
+        {
+            isCheckedIn = false;
+            todayTotal = TimeSpan.Zero;
+            weekTotal = TimeSpan.Zero;
+            runtimeWorkStart = null;
+            todayWork = null;
+
+            workTimer.Stop();
+
+            currentUser = user;
+            lblNickname.Text = $"닉네임: {currentUser.Username}";
+            lblRank.Text = $"직급: {currentUser.Rank}";
+            lblHireDate.Text = $"입사일: {FormatHireDate(currentUser.CreatedAt)}";
+            CenterUI();
+
+            await LoadTodayWorkAsync();
+            await LoadUserRanksAsync();
+
+            workTimer.Start();
+        }
+
+        public void RefreshWorkStatus()
+        {
+            UpdateWorkTimeLabel();
+        }
+
+        private static DateTime GetKstNow()
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.UtcNow,
+                TimeZoneInfo.FindSystemTimeZoneById("Korea Standard Time")
             );
+        }
 
-            if (result != DialogResult.Yes)
-                return;
+        public async Task ForceReloadFromDbAsync()
+        {
+            workTimer.Stop();
 
+            isCheckedIn = false;
+            runtimeWorkStart = null;
+            todayTotal = TimeSpan.Zero;
+            weekTotal = TimeSpan.Zero;
+            todayWork = null;
+
+            await LoadTodayWorkAsync();
+            await LoadUserRanksAsync();
+
+            UpdateWorkTimeLabel();
+            workTimer.Start();
+        }
+
+        // 🔹 10위까지 ListBox에 표시
+        public async Task LoadUserRanksAsync()
+        {
             try
             {
-                DateTime today = DateTime.Today;
-                int diff = (int)today.DayOfWeek - (int)DayOfWeek.Monday;
-                if (diff < 0) diff += 7;
-
-                DateTime weekStart = today.AddDays(-diff);
-                DateTime weekEnd = weekStart.AddDays(7).AddSeconds(-1);
-
-                var resp = await client.From<Work>()
-                    .Where(w => w.UserId == userId)
+                var res = await supabase.From<User>()
+                    .Select("id, username, weekly_work_seconds, rp_count")
                     .Get();
 
-                foreach (var work in resp.Models)
+                var users = res.Models ?? new System.Collections.Generic.List<User>();
+
+                // 주간 출근 랭킹
+                var sortedWork = users
+                    .OrderByDescending(u => u.WeekTotalSeconds ?? 0)
+                    .Take(10)
+                    .ToList();
+
+                lbWorkRankBox.Items.Clear();
+                lbWorkRankBox.Items.Add("주간 출근 랭킹");
+                foreach (var (u, i) in sortedWork.Select((v, idx) => (v, idx)))
                 {
-                    if (DateTime.TryParse(work.Date, out DateTime workDate))
-                    {
-                        if (workDate >= weekStart && workDate <= weekEnd)
-                        {
-                            work.WeekTotalSeconds = 0;
-                            await client.From<Work>()
-                                .Where(w => w.Id == work.Id)
-                                .Update(work);
-                        }
-                    }
+                    double seconds = (double)(u.WeekTotalSeconds ?? 0);
+                    TimeSpan ts = TimeSpan.FromSeconds(seconds);
+                    lbWorkRankBox.Items.Add($"{i + 1}위 {u.Username} {(int)ts.TotalHours}시간 {ts.Minutes}분");
                 }
 
-                await LoadWeekTimesAsync();
+                // RP 순위
+                var sortedRp = users
+                    .OrderByDescending(u => u.RpCount ?? 0)
+                    .Take(10)
+                    .ToList();
 
-                if (main?.Mypage != null)
-                    await main.Mypage.ForceReloadFromDbAsync();
-
-                MessageBox.Show(
-                    $"[ {username} ] 유저의 이번 주 주간 근무 시간이 초기화되었습니다.",
-                    "초기화 완료",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information
-                );
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    "선택 유저 주간 초기화 실패: " + ex.Message,
-                    "오류",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-            }
-        }
-
-
-        private async Task LoadRidingUsersAsync()
-        {
-            lbRidingUsers.Items.Clear();
-            try
-            {
-                var resp = await client.From<User>().Where(u => u.IsRiding == true).Get();
-                foreach (var u in resp.Models)
+                lbRpRankBox.Items.Clear();
+                lbRpRankBox.Items.Add("주간 RP 순위");
+                foreach (var (u, i) in sortedRp.Select((v, idx) => (v, idx)))
                 {
-                    lbRidingUsers.Items.Add($"{u.Username} | {u.Level} | {u.RP}");
+                    lbRpRankBox.Items.Add($"{i + 1}위 {u.Username} {u.RpCount ?? 0}회");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("탑승 중 유저 목록 로드 실패: " + ex.Message);
-            }
-        }
-
-        private async Task BtnForceRelease_ClickAsync()
-        {
-            if (lbRidingUsers.SelectedItem == null)
-            {
-                MessageBox.Show("강제 해제할 유저를 선택하세요.");
-                return;
-            }
-
-            string selectedUsername = lbRidingUsers.SelectedItem.ToString().Split('|')[0].Trim();
-
-            if (MessageBox.Show($"[ {selectedUsername} ] 님의 탑승 상태를 강제 해제하시겠습니까?", "확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
-
-            try
-            {
-                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
-                var user = users.Models.FirstOrDefault();
-                if (user != null)
-                {
-                    user.IsRiding = false;
-                    await client.From<User>().Where(u => u.Id == user.Id).Update(user);
-
-                    await LoadRidingUsersAsync();
-                    await LoadAllUsersAsync();
-
-                    MessageBox.Show("해제가 완료되었습니다.");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("강제 해제 중 오류: " + ex.Message);
+                lbWorkRankBox.Items.Clear();
+                lbRpRankBox.Items.Clear();
+                lbWorkRankBox.Items.Add("주간 출근 랭킹: -");
+                lbRpRankBox.Items.Add("주간 RP 순위: -");
+                Console.WriteLine("LoadUserRanksAsync 오류: " + ex.Message);
             }
         }
     }

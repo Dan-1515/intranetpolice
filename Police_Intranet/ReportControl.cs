@@ -341,13 +341,13 @@ namespace Police_Intranet
             submit = new Button
             {
                 Text = "보고서 작성",
-                Size = new Size(95, 25),
+                Size = new Size(95, 30),
                 BackColor = Color.FromArgb(70, 70, 70),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
                 Cursor = Cursors.Hand,
-                Location = new Point(rightPanel.Width - 110, 10)
+                Location = new Point(rightPanel.Width - 110, 5)
             };
             submit.FlatAppearance.BorderSize = 0;
             submit.MouseEnter += (s, e) => submit.BackColor = Color.FromArgb(100, 100, 100);
@@ -837,9 +837,15 @@ namespace Police_Intranet
                     return;
                 }
 
+                // ✅ 참여 경관 문자열 (로그용)
                 string participantPolice = string.Join(", ", lbUsers.SelectedItems.Cast<string>());
+                if (string.IsNullOrWhiteSpace(participantPolice))
+                    participantPolice = "없음";
+
+                // ✅ 상대측 참여 인원 수
                 string opponentCount = txtPerson.Text.Trim();
-                if (string.IsNullOrWhiteSpace(opponentCount)) opponentCount = "0";
+                if (string.IsNullOrWhiteSpace(opponentCount))
+                    opponentCount = "0";
 
                 if (reportWebhook == null)
                 {
@@ -847,12 +853,35 @@ namespace Police_Intranet
                     return;
                 }
 
+                // 🔥 1. 디스코드 로그 전송
                 await reportWebhook.SendReportLogAsync(
                     writer: loggedInUser,
                     RP: selectedRp,
                     ParticipantPolice: participantPolice,
                     participants: opponentCount
                 );
+
+                // 🔥 2. RP 참여자 RP 횟수 증가
+                var participantUsernames = lbUsers.SelectedItems
+                    .Cast<string>()
+                    .ToList();
+
+                foreach (var username in participantUsernames)
+                {
+                    var user = await SupabaseClient.Instance
+                        .From<User>()
+                        .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, username)
+                        .Single();
+
+                    if (user != null)
+                    {
+                        user.RpCount += 1;
+
+                        await SupabaseClient.Instance
+                            .From<User>()
+                            .Update(user);
+                    }
+                }
 
                 MessageBox.Show("보고서가 작성되었습니다.");
             }
@@ -861,7 +890,6 @@ namespace Police_Intranet
                 MessageBox.Show("보고서 작성 실패\n" + ex.Message);
             }
         }
-
 
         public void RefreshWorkingUsers()
         {
