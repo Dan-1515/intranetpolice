@@ -30,7 +30,7 @@ namespace Police_Intranet
         public AdminControl Admin { get; private set; }
 
         private Label lblVersion;
-        private DiscordWebhook discordWebhook;
+        private DiscordWebhook reportWebhook;
         private Client _client;
 
         public bool IsLogoutRequested { get; private set; } = false;
@@ -43,22 +43,12 @@ namespace Police_Intranet
 
             _currentUser = loggedInUser ?? throw new ArgumentNullException(nameof(loggedInUser));
             _client = client ?? throw new ArgumentNullException(nameof(client));
+            reportWebhook = new DiscordWebhook(WebhookUrls.ReportLog);
             this.Icon = Properties.Resource1.police;
 
-            try
-            {
-                discordWebhook = new DiscordWebhook(
-                    "https://discord.com/api/webhooks/1433432108264722545/4wp-I4rpcJR0FhFPnvVsUMkPAps9qi7KZa1O-n6lT3S7YzQhl5NojmznuJEUwNLfP7WY"
-                );
-            }
-            catch
-            {
-                discordWebhook = null;
-            }
-
-            // ⭐ 각 탭에 대하여 딱 한 번만 생성
-            Mypage = new MypageControl(_currentUser, _client, discordWebhook);
-            Report = new ReportControl(this, _currentUser);
+            // ⭐ 웹훅은 여기서 안 만듦
+            Mypage = new MypageControl(_currentUser, _client);
+            Report = new ReportControl(this, _currentUser, Mypage, reportWebhook);
             Cal = new CalculatorControl();
             SideNotice = new SideNoticeControl();
             Admin = new AdminControl(_client, this, Mypage);

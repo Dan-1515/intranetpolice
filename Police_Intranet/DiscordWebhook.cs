@@ -11,6 +11,7 @@ namespace Police_Intranet.Services
     public class DiscordWebhook
     {
         private readonly string webhookUrl;
+
         private static readonly HttpClient httpClient = new HttpClient();
 
         public DiscordWebhook(string url)
@@ -54,6 +55,7 @@ namespace Police_Intranet.Services
         }
 
         // ===================== 출퇴근 로그 전송 =====================
+        
         public async Task SendWorkLogAsync(string userName, bool isCheckedIn, User user, DateTime checkInTime, DateTime? checkOutTime)
         {
             if (user == null)
@@ -92,6 +94,22 @@ namespace Police_Intranet.Services
         private string FormatTimeSpan(TimeSpan t)
         {
             return $"{t.Days}일 {t.Hours}시간 {t.Minutes}분 {t.Seconds}초";
+        }
+
+        // ===================== 보고서 로그 전송 =====================
+        public async Task SendReportLogAsync(User writer, string RP, string ParticipantPolice, string participants)
+        {
+            string description =
+                $"**RP명 : ** {RP}\n\n" +
+                $"**작성자 : ** {writer.Username}\n\n" +
+                $"**상대측 참여 인원 수 : ** {participants}\n\n" +
+                $"**참여 경관 : ** {ParticipantPolice}\n\n";
+
+            string footer = $"Made By dadev  |  {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+            int color = 0x5DADE2;
+            // ❤️ 디스코드 로고 URL
+            string logoUrl = "https://cdn.discordapp.com/attachments/1427149493123420290/1441946603467571380/ver.png";
+            await SendEmbedAsync("경찰청 RP 보고서", description, color, footer, logoUrl);
         }
 
     }

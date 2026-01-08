@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Police_Intranet.Models;
+using Police_Intranet.Services;
 
 namespace Police_Intranet
 {
@@ -47,9 +48,12 @@ namespace Police_Intranet
         private User loggedInUser;
         private bool isRiding = false;
 
+        private readonly DiscordWebhook _reportWebhook;
+        private DiscordWebhook reportWebhook;
+
         private System.Windows.Forms.Timer rideTimer;
 
-        public ReportControl(Main main, User currentUser, MypageControl mypage = null)
+        public ReportControl(Main main, User currentUser, MypageControl mypage, DiscordWebhook Webhook)
         {
             InitializeComponent();
             InitializeRpUi();
@@ -64,9 +68,11 @@ namespace Police_Intranet
             rideTimer.Tick += async (s, e) => await LoadRidingUsersAsync();
             rideTimer.Start();
             _ = LoadRidingUsersAsync();
+            _ = LoadUsersAsync();
 
             RefreshWorkingUsers();
             RefreshLbUser(); // 탭 전환 후에도 유지 가능하도록 수정
+            this.reportWebhook = Webhook;
         }
 
         private void InitializeRpUi()
@@ -322,32 +328,58 @@ namespace Police_Intranet
             this.Controls.Add(rightPanel);
             rightPanel.BringToFront();
 
+            Label lblSelectedTitle = new Label
+            {
+                Text = "참여자 선택",
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                ForeColor = Color.White,
+                Location = new Point(10, 10),
+                AutoSize = true
+            };
+            rightPanel.Controls.Add(lblSelectedTitle);
+
             submit = new Button
             {
                 Text = "보고서 작성",
-                Size = new Size(95, 30),
+                Size = new Size(95, 25),
                 BackColor = Color.FromArgb(70, 70, 70),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 8F, FontStyle.Bold),
                 Cursor = Cursors.Hand,
                 Location = new Point(rightPanel.Width - 110, 10)
             };
             submit.FlatAppearance.BorderSize = 0;
             submit.MouseEnter += (s, e) => submit.BackColor = Color.FromArgb(100, 100, 100);
             submit.MouseLeave += (s, e) => submit.BackColor = Color.FromArgb(70, 70, 70);
-            // submit.Click += btnSubmit_Click;
-            // rightPanel.Controls.Add(submit);
+            submit.Click += btnSubmit_Click;
+            rightPanel.Controls.Add(submit);
 
-            Label lblSelectedTitle = new Label
+            lbUsers = new ListBox
             {
-                Text = "참여자 선택",
-                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                Location = new Point(10, submit.Bottom + 10),
+                Size = new Size(rightPanel.Width - 20, 200),
+                BackColor = Color.FromArgb(30, 30, 30),
                 ForeColor = Color.White,
-                Location = new Point(5, 14),
-                AutoSize = true
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+                BorderStyle = BorderStyle.FixedSingle,
+                SelectionMode = SelectionMode.MultiExtended,
+                DrawMode = DrawMode.OwnerDrawFixed,
+                ItemHeight = 16,
             };
-            // rightPanel.Controls.Add(lblSelectedTitle);
+            lbUsers.DrawItem += (s, e) =>
+            {
+                if (e.Index < 0) return;
+                e.DrawBackground();
+                string text = lbUsers.Items[e.Index].ToString();
+                using (Brush brush = new SolidBrush(e.ForeColor))
+                    e.Graphics.DrawString(text, e.Font, brush, e.Bounds);
+                e.DrawFocusRectangle();
+            };
+            // rightPanel.Controls.Add(lbUsers);
+
+            // if (loggedInUser != null)
+            //    lbUsers.Items.Add($"{loggedInUser.UserId} | {loggedInUser.Name}");
 
             lbUsers = new ListBox
             {
@@ -370,7 +402,7 @@ namespace Police_Intranet
                     e.Graphics.DrawString(text, e.Font, brush, e.Bounds);
                 e.DrawFocusRectangle();
             };
-            // rightPanel.Controls.Add(lbUsers);
+            rightPanel.Controls.Add(lbUsers);
 
             // if (loggedInUser != null)
             //    lbUsers.Items.Add($"{loggedInUser.UserId} | {loggedInUser.Name}");
@@ -381,7 +413,7 @@ namespace Police_Intranet
             {
                 Text = "초기화",
                 Size = new Size(280, 30),
-                Location = new Point(10, 305),
+                Location = new Point(10, 475),
                 BackColor = Color.FromArgb(70, 70, 70),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -401,7 +433,7 @@ namespace Police_Intranet
                 txtBailDetention.Clear();
                 txtPerson.Clear();
             };
-            rightPanel.Controls.Add(btnClear);
+            // rightPanel.Controls.Add(btnClear);
 
             UpdateRightPanelLocation();
             this.Resize += (s, e) => UpdateRightPanelLocation();
@@ -554,56 +586,67 @@ namespace Police_Intranet
 
         private void CreateFineDetentionControls()
         {
-            Label lblCheck = new Label
-            {
-                Text = "벌금/구금 확인",
-                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                ForeColor = Color.White,
-                Location = new Point(5, 14),
-                AutoSize = true
-            };
-            rightPanel.Controls.Add(lblCheck);
+            int y = lbUsers.Bottom + 15;
+            int gap = 5;
 
-            Label lblPerson = new Label
-            {
-                Text = "상대측 참여 인원 수",
-                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
-                ForeColor = Color.White,
-                Location = new Point(5, 45),
-                AutoSize = true
-            };
+            // ===== 참여자 수 =====
+            Label lblPerson = CreateLabel("상대측 참여자 수", 10, y);
             rightPanel.Controls.Add(lblPerson);
+            y += lblPerson.Height + 5;
 
             txtPerson = new TextBox
             {
-                Location = new Point(10, 65),
+                Location = new Point(10, y),
                 Size = new Size(280, 25),
                 BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                Text = "1"
             };
-            txtPerson.KeyPress += (sender, e) =>
+
+            txtPerson.KeyPress += (s, e) =>
             {
-                if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar)) e.Handled = true;
+                if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+                    e.Handled = true;
             };
-            txtPerson.TextChanged += (s, e) => UpdateFineAndDetention();
             rightPanel.Controls.Add(txtPerson);
+            y += txtPerson.Height + gap;
 
-            txtFine = CreateReadonlyTextBox(10, 115);
-            rightPanel.Controls.Add(CreateLabel("벌금", 5, 95));
+            // ===== 벌금 =====
+            Label lblFine = CreateLabel("벌금", 10, y);
+            rightPanel.Controls.Add(lblFine);
+            y += lblFine.Height + 5;
+
+            txtFine = CreateReadonlyTextBox(10, y);
             rightPanel.Controls.Add(txtFine);
+            y += txtFine.Height + gap;
 
-            txtDetention = CreateReadonlyTextBox(10, 165);
-            rightPanel.Controls.Add(CreateLabel("구금", 5, 145));
+            // ===== 구금 =====
+            Label lblDetention = CreateLabel("구금", 10, y);
+            rightPanel.Controls.Add(lblDetention);
+            y += lblDetention.Height + 5;
+
+            txtDetention = CreateReadonlyTextBox(10, y);
             rightPanel.Controls.Add(txtDetention);
+            y += txtDetention.Height + gap;
 
-            txtBailFine = CreateReadonlyTextBox(10, 215);
-            rightPanel.Controls.Add(CreateLabel("벌금 (보석금 포함)", 5, 195));
+            // ===== 벌금 (보석금 포함) =====
+            Label lblBailFine = CreateLabel("벌금 (보석금 포함)", 10, y);
+            rightPanel.Controls.Add(lblBailFine);
+            y += lblBailFine.Height + 5;
+
+            txtBailFine = CreateReadonlyTextBox(10, y);
             rightPanel.Controls.Add(txtBailFine);
+            y += txtBailFine.Height + gap;
 
-            txtBailDetention = CreateReadonlyTextBox(10, 265);
-            rightPanel.Controls.Add(CreateLabel("구금 (보석금 포함)", 5, 245));
+            // ===== 구금 (보석금 포함) =====
+            Label lblBailDetention = CreateLabel("구금 (보석금 포함)", 10, y);
+            rightPanel.Controls.Add(lblBailDetention);
+            y += lblBailDetention.Height + 5;
+
+            txtBailDetention = CreateReadonlyTextBox(10, y);
             rightPanel.Controls.Add(txtBailDetention);
         }
+
 
         private TextBox CreateReadonlyTextBox(int x, int y)
         {
@@ -743,6 +786,80 @@ namespace Police_Intranet
             txtDetention.Text = $"{totalDetention}분";
             txtBailFine.Text = $"{totalBailFine:N0}원";
             txtBailDetention.Text = $"{totalBailDetention}분";
+        }
+
+
+        private async Task LoadUsersAsync()
+        {
+            try
+            {
+                if (SupabaseClient.Instance == null) return;
+
+                var response = await SupabaseClient.Instance
+                    .From<User>()
+                    .Get();
+
+                var users = response.Models;
+
+                if (lbUsers.InvokeRequired)
+                {
+                    lbUsers.Invoke(new Action(() => UpdateLbUsers(users)));
+                }
+                else
+                {
+                    UpdateLbUsers(users);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("유저 목록 로딩 실패: " + ex.Message);
+            }
+        }
+
+        private void UpdateLbUsers(List<User> users)
+        {
+            lbUsers.Items.Clear();
+
+            foreach (var user in users)
+            {
+                string text = $"{user.Username}";
+                lbUsers.Items.Add(text);
+            }
+        }
+
+        private async void btnSubmit_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(selectedRp))
+                {
+                    MessageBox.Show("RP를 선택해주세요.");
+                    return;
+                }
+
+                string participantPolice = string.Join(", ", lbUsers.SelectedItems.Cast<string>());
+                string opponentCount = txtPerson.Text.Trim();
+                if (string.IsNullOrWhiteSpace(opponentCount)) opponentCount = "0";
+
+                if (reportWebhook == null)
+                {
+                    MessageBox.Show("디스코드 웹훅이 설정되지 않았습니다.");
+                    return;
+                }
+
+                await reportWebhook.SendReportLogAsync(
+                    writer: loggedInUser,
+                    RP: selectedRp,
+                    ParticipantPolice: participantPolice,
+                    participants: opponentCount
+                );
+
+                MessageBox.Show("보고서가 작성되었습니다.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("보고서 작성 실패\n" + ex.Message);
+            }
         }
 
 

@@ -43,10 +43,10 @@ namespace Police_Intranet
         private readonly string supabaseUrl = "https://eeyxcupedhyoatovzepr.supabase.co";
         private readonly string supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleXhjdXBlZGh5b2F0b3Z6ZXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NDAzNjEsImV4cCI6MjA3OTIxNjM2MX0.jQKzE_ZO1t8x8heY0mqs0pttsb7R06KIGcDVOihwg-k";
 
-        public MypageControl(User user, Client client, DiscordWebhook webhook)
+        public MypageControl(User user, Client client)
         {
             currentUser = user;
-            workWebhook = webhook;
+            workWebhook = new DiscordWebhook(WebhookUrls.WorkLog);
 
             supabase = new Supabase.Client(
                 supabaseUrl,
