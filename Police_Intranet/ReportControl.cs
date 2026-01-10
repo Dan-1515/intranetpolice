@@ -883,6 +883,21 @@ namespace Police_Intranet
                     }
                 }
 
+                if (mypageControl != null)
+                {
+                    await mypageControl.LoadUserRanksAsync();
+                }
+
+                lbUsers.ClearSelected();
+                selectedRp = "";
+                selectedCrimes.Clear();
+
+                foreach (var b in robberyButtons)
+                    b.BackColor = Color.FromArgb(60, 60, 60);
+
+                foreach (var b in storyButtons)
+                    b.BackColor = Color.FromArgb(60, 60, 60);
+
                 MessageBox.Show("보고서가 작성되었습니다.");
             }
             catch (Exception ex)
