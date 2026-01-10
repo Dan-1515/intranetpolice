@@ -376,10 +376,6 @@ namespace Police_Intranet
                     e.Graphics.DrawString(text, e.Font, brush, e.Bounds);
                 e.DrawFocusRectangle();
             };
-            // rightPanel.Controls.Add(lbUsers);
-
-            // if (loggedInUser != null)
-            //    lbUsers.Items.Add($"{loggedInUser.UserId} | {loggedInUser.Name}");
 
             lbUsers = new ListBox
             {
@@ -403,9 +399,6 @@ namespace Police_Intranet
                 e.DrawFocusRectangle();
             };
             rightPanel.Controls.Add(lbUsers);
-
-            // if (loggedInUser != null)
-            //    lbUsers.Items.Add($"{loggedInUser.UserId} | {loggedInUser.Name}");
 
             CreateFineDetentionControls();
 
@@ -793,28 +786,23 @@ namespace Police_Intranet
         {
             try
             {
-                if (SupabaseClient.Instance == null) return;
-
                 var response = await SupabaseClient.Instance
                     .From<User>()
                     .Get();
 
-                var users = response.Models;
+                var users = response.Models ?? new List<User>();
 
                 if (lbUsers.InvokeRequired)
-                {
-                    lbUsers.Invoke(new Action(() => UpdateLbUsers(users)));
-                }
+                    lbUsers.Invoke(() => UpdateLbUsers(users));
                 else
-                {
                     UpdateLbUsers(users);
-                }
             }
             catch (Exception ex)
             {
                 MessageBox.Show("유저 목록 로딩 실패: " + ex.Message);
             }
         }
+
 
         private void UpdateLbUsers(List<User> users)
         {
@@ -909,7 +897,6 @@ namespace Police_Intranet
         public void RefreshWorkingUsers()
         {
             lbUsers.Items.Clear();
-
         }
         public event Action OnRpUpdated;
 

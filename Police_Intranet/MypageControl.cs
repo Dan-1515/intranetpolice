@@ -18,6 +18,8 @@ namespace Police_Intranet
         private Label lblWeek;
         private Label lblWorkTime;
         private Label lblHireDate;
+        private Label lblWeekTotal;
+        private Label lblRpTotal;
 
         private FlowLayoutPanel workRankPanel;
         private FlowLayoutPanel rpRankPanel;
@@ -190,27 +192,43 @@ namespace Police_Intranet
                 Location = new Point((Width - 300) / 2, baseWeekY)
             };
 
-            // 🔹 ListBox로 변경
+            lblWeekTotal = new Label
+            {
+                Text = "주간 근무시간 순위",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                AutoSize = true
+            };
+
+            lblRpTotal = new Label
+            {
+                Text = "주간 RP횟수 순위",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 12, FontStyle.Bold),
+                AutoSize = true
+            };
+
+            // 🔹 랭킹 Panel 추가
             workRankPanel = new FlowLayoutPanel
             {
-                Width = 300,
+                Width = 250,
                 Height = 250,
-                BackColor = Color.FromArgb(40, 40, 40),
+                BackColor = Color.FromArgb(50, 50, 50),
                 AutoScroll = true
             };
 
             rpRankPanel = new FlowLayoutPanel
             {
-                Width = 300,
+                Width = 250,
                 Height = 250,
-                BackColor = Color.FromArgb(40, 40, 40),
+                BackColor = Color.FromArgb(50, 50, 50),
                 AutoScroll = true
             };
 
             Controls.AddRange(new Control[]
             {
                 lblNickname, lblRank, lblHireDate, btnToggleWork, lblWorkTime, lblWeek,
-                workRankPanel, rpRankPanel
+                workRankPanel, rpRankPanel, lblWeekTotal, lblRpTotal
             });
 
             workTimer = new WinTimer { Interval = 1000 };
@@ -222,6 +240,10 @@ namespace Police_Intranet
 
             workRankPanel.TabStop = false;
             rpRankPanel.TabStop = false;
+
+            lblWeekTotal.TextAlign = ContentAlignment.MiddleCenter;
+            lblRpTotal.TextAlign = ContentAlignment.MiddleCenter;
+
         }
 
         private void CenterUI()
@@ -233,9 +255,15 @@ namespace Police_Intranet
             btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 180);
             lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 240);
             lblWeek.Location = new Point(cx - lblWeek.Width / 2, 280);
+            
+            int gap = 20; // 두 랭킹 사이 간격
 
-            workRankPanel.Location = new Point(cx - 320, 320);
-            rpRankPanel.Location = new Point(cx + 20, 320);
+            workRankPanel.Location = new Point(cx - workRankPanel.Width - gap, 360);
+            rpRankPanel.Location = new Point(cx + gap, 360);
+
+            lblWeekTotal.Location = new Point(workRankPanel.Left + (workRankPanel.Width - lblWeekTotal.Width) / 2, workRankPanel.Top - lblWeekTotal.Height - 8);  // ← 위 여백 (숫자만 조절)
+            lblRpTotal.Location = new Point(rpRankPanel.Left + (rpRankPanel.Width - lblRpTotal.Width) / 2, rpRankPanel.Top - lblRpTotal.Height - 8);
+
         }
 
         private async Task ToggleWorkAsync()
@@ -525,14 +553,13 @@ namespace Police_Intranet
             }
         }
 
-
         private Control CreateRankItem(int rank, string text)
         {
             Color textColor = rank switch
             {
                 1 => Color.Gold,
                 2 => Color.Silver,
-                3 => Color.Peru,   // 동색
+                3 => Color.Peru,
                 _ => Color.White
             };
 
@@ -543,29 +570,40 @@ namespace Police_Intranet
                 Margin = new Padding(0, 0, 0, 6)
             };
 
-            var lbl = new Label
+            // 1️⃣ 순위 Label (왼쪽 고정)
+            var lblRank = new Label
             {
-                Dock = DockStyle.Fill,
-                Text = $"[{rank}위] {text}",
-                ForeColor = textColor,              // 🔥 여기만 강조
+                Text = $"[{rank}위]",
+                ForeColor = textColor,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                Padding = new Padding(8, 0, 0, 0)
+                Dock = DockStyle.Left,
+                Width = 50,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
             };
 
-            if (rank == 1)
-                lbl.Font = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+            // 2️⃣ 이름+시간 Label (순위 오른쪽, 왼쪽으로 10px 이동)
+            var lblContent = new Label
+            {
+                Text = text,
+                ForeColor = Color.White,
+                TextAlign = ContentAlignment.MiddleLeft, // 중앙에서 왼쪽으로 변경
+                Dock = DockStyle.Fill,
+                Padding = new Padding(10, 0, 0, 0), // 왼쪽으로 10px 이동
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+            };
 
-            if (rank == 2)
-                lbl.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+            // 상위 3위 폰트 조절
+            if (rank == 1) lblContent.Font = new Font("Segoe UI", 10.5f, FontStyle.Bold);
+            if (rank == 2) lblContent.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
+            if (rank == 3) lblContent.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
 
-            if (rank == 3)
-                lbl.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
+            panel.Controls.Add(lblContent); // 먼저 content
+            panel.Controls.Add(lblRank);     // 순위는 Dock.Left로 왼쪽 고정
 
-
-            panel.Controls.Add(lbl);
             return panel;
         }
+
+
 
 
         private Label CreateEmptyLabel()

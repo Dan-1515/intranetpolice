@@ -440,7 +440,7 @@ namespace Police_Intranet
             );
 
             if (result != DialogResult.Yes)
-                return; // ❌ 취소하면 아무것도 안 함
+                return;
 
             try
             {
