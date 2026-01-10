@@ -70,6 +70,7 @@ namespace Police_Intranet
             _ = LoadRidingUsersAsync();
             _ = LoadUsersAsync();
 
+            LoadUsersAsync();
             RefreshWorkingUsers();
             RefreshLbUser(); // 탭 전환 후에도 유지 가능하도록 수정
             this.reportWebhook = Webhook;
@@ -367,38 +368,27 @@ namespace Police_Intranet
                 DrawMode = DrawMode.OwnerDrawFixed,
                 ItemHeight = 16,
             };
-            lbUsers.DrawItem += (s, e) =>
-            {
-                if (e.Index < 0) return;
-                e.DrawBackground();
-                string text = lbUsers.Items[e.Index].ToString();
-                using (Brush brush = new SolidBrush(e.ForeColor))
-                    e.Graphics.DrawString(text, e.Font, brush, e.Bounds);
-                e.DrawFocusRectangle();
-            };
-
-            lbUsers = new ListBox
-            {
-                Location = new Point(10, submit.Bottom + 10),
-                Size = new Size(rightPanel.Width - 20, 200),
-                BackColor = Color.FromArgb(30, 30, 30),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
-                BorderStyle = BorderStyle.FixedSingle,
-                SelectionMode = SelectionMode.MultiExtended,
-                DrawMode = DrawMode.OwnerDrawFixed,
-                ItemHeight = 24,
-            };
-            lbUsers.DrawItem += (s, e) =>
-            {
-                if (e.Index < 0) return;
-                e.DrawBackground();
-                string text = lbUsers.Items[e.Index].ToString();
-                using (Brush brush = new SolidBrush(e.ForeColor))
-                    e.Graphics.DrawString(text, e.Font, brush, e.Bounds);
-                e.DrawFocusRectangle();
-            };
             rightPanel.Controls.Add(lbUsers);
+            lbUsers.DrawItem += (s, e) =>
+            {
+                if (e.Index < 0) return;
+                e.DrawBackground();
+
+                string text = lbUsers.Items[e.Index].ToString();
+
+                using (Brush brush = new SolidBrush(e.ForeColor))
+                {
+                    Rectangle rect = new Rectangle(
+                        e.Bounds.X + 5,  // 글자를 5px 오른쪽으로
+                        e.Bounds.Y,
+                        e.Bounds.Width - 5,
+                        e.Bounds.Height
+                    );
+                    e.Graphics.DrawString(text, e.Font, brush, rect);
+                }
+
+                e.DrawFocusRectangle();
+            };
 
             CreateFineDetentionControls();
 

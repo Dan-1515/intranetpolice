@@ -211,16 +211,16 @@ namespace Police_Intranet
             // 🔹 랭킹 Panel 추가
             workRankPanel = new FlowLayoutPanel
             {
-                Width = 250,
-                Height = 250,
+                Width = 300,
+                Height = 380,
                 BackColor = Color.FromArgb(50, 50, 50),
                 AutoScroll = true
             };
 
             rpRankPanel = new FlowLayoutPanel
             {
-                Width = 250,
-                Height = 250,
+                Width = 300,
+                Height = 380,
                 BackColor = Color.FromArgb(50, 50, 50),
                 AutoScroll = true
             };
@@ -476,8 +476,8 @@ namespace Police_Intranet
                 // =========================
                 // 주간 출근 랭킹
                 // =========================
-                var workRanks = works
-                    .Where(w => (w.WeekTotalSeconds) > 0)
+                var allWorkRanks = works
+                    .Where(w => w.WeekTotalSeconds > 0)
                     .GroupBy(w => w.UserId)
                     .Select(g => new
                     {
@@ -485,59 +485,84 @@ namespace Police_Intranet
                         WeekSeconds = g.Max(x => x.WeekTotalSeconds)
                     })
                     .OrderByDescending(x => x.WeekSeconds)
-                    .Take(10)
                     .ToList();
 
                 workRankPanel.Controls.Clear();
 
-                if (workRanks.Count == 0)
+                if (allWorkRanks.Count == 0)
                 {
                     workRankPanel.Controls.Add(CreateEmptyLabel());
                 }
                 else
                 {
-                    for (int i = 0; i < workRanks.Count; i++)
+                    int displayCount = Math.Min(10, allWorkRanks.Count);
+
+                    // 상위 10위 표시
+                    for (int i = 0; i < displayCount; i++)
                     {
-                        var rank = workRanks[i];
+                        var rank = allWorkRanks[i];
                         var user = users.FirstOrDefault(u => u.Id == rank.UserId);
                         if (user == null) continue;
 
                         TimeSpan ts = TimeSpan.FromSeconds(rank.WeekSeconds);
+                        string text = $"{user.Username} {(int)ts.TotalHours}시간 {ts.Minutes:D2}분";
 
-                        string text =
-                            $"{user.Username} {(int)ts.TotalHours}시간 {ts.Minutes:D2}분";
+                        bool isMe = user.Id == currentUser.Id;
+                        workRankPanel.Controls.Add(CreateRankItem(i + 1, text, isMe));
+                    }
 
-                        workRankPanel.Controls.Add(
-                            CreateRankItem(i + 1, text)
-                        );
+                    // 내 순위 확인 (10위 이하라면 맨 아래에 표시)
+                    var me = users.FirstOrDefault(u => u.Id == currentUser.Id);
+                    if (me != null)
+                    {
+                        int myIndex = allWorkRanks.FindIndex(w => w.UserId == me.Id);
+                        if (myIndex >= 10)
+                        {
+                            TimeSpan ts = TimeSpan.FromSeconds(allWorkRanks[myIndex].WeekSeconds);
+                            string text = $"{me.Username} {(int)ts.TotalHours}시간 {ts.Minutes:D2}분";
+
+                            // -위 표시, 하이라이트 적용
+                            workRankPanel.Controls.Add(CreateRankItem(-(myIndex + 1), text, true));
+                        }
                     }
                 }
 
                 // =========================
                 // 주간 RP 랭킹
                 // =========================
-                var rpRanks = users
+                var allRpRanks = users
                     .Where(u => u.RpCount > 0)
                     .OrderByDescending(u => u.RpCount)
-                    .Take(10)
                     .ToList();
 
                 rpRankPanel.Controls.Clear();
 
-                if (rpRanks.Count == 0)
+                if (allRpRanks.Count == 0)
                 {
                     rpRankPanel.Controls.Add(CreateEmptyLabel());
                 }
                 else
                 {
-                    for (int i = 0; i < rpRanks.Count; i++)
+                    int displayCount = Math.Min(10, allRpRanks.Count);
+
+                    // 상위 10위 표시
+                    for (int i = 0; i < displayCount; i++)
                     {
-                        var u = rpRanks[i];
+                        var u = allRpRanks[i];
                         string text = $"{u.Username} {u.RpCount}회";
 
-                        rpRankPanel.Controls.Add(
-                            CreateRankItem(i + 1, text)
-                        );
+                        bool isMe = u.Id == currentUser.Id;
+                        rpRankPanel.Controls.Add(CreateRankItem(i + 1, text, isMe));
+                    }
+
+                    // 내 순위 확인 (10위 이하라면 맨 아래에 표시)
+                    int myIndex = allRpRanks.FindIndex(u => u.Id == currentUser.Id);
+                    if (myIndex >= 10)
+                    {
+                        var me = allRpRanks[myIndex];
+                        string text = $"{me.Username} {me.RpCount}회";
+
+                        rpRankPanel.Controls.Add(CreateRankItem(-(myIndex + 1), text, true));
                     }
                 }
             }
@@ -553,8 +578,9 @@ namespace Police_Intranet
             }
         }
 
-        private Control CreateRankItem(int rank, string text)
+        private Control CreateRankItem(int rank, string text, bool isMe = false)
         {
+            // 🔹 순위 색상
             Color textColor = rank switch
             {
                 1 => Color.Gold,
@@ -563,33 +589,44 @@ namespace Police_Intranet
                 _ => Color.White
             };
 
+            // 🔹 배경색 (내 순위 하이라이트)
+            Color backColor = isMe ? Color.FromArgb(60, 60, 90) : Color.Transparent;
+
+            // 🔹 패널 (FlowLayoutPanel 폭에 맞춤)
+            int panelWidth = workRankPanel.ClientSize.Width; // workRankPanel 기준 폭
             var panel = new Panel
             {
-                Width = workRankPanel.ClientSize.Width - 10,
+                Width = panelWidth,       // 가로 스크롤 방지
                 Height = 30,
-                Margin = new Padding(0, 0, 0, 6)
+                Margin = new Padding(0, 0, 0, 2),
+                BackColor = backColor
             };
 
-            // 1️⃣ 순위 Label (왼쪽 고정)
+            // 🔹 순위 라벨 (왼쪽 고정)
+            string rankText = rank > 0 ? $"{rank}위" : $"{Math.Abs(rank)}위";
             var lblRank = new Label
             {
-                Text = $"[{rank}위]",
+                Text = $"[{rankText}]",
                 ForeColor = textColor,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Dock = DockStyle.Left,
                 Width = 50,
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+                Height = panel.Height,
+                Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                Location = new Point(0, 0),
+                AutoSize = false
             };
 
-            // 2️⃣ 이름+시간 Label (순위 오른쪽, 왼쪽으로 10px 이동)
+            // 🔹 내용 라벨 (나머지 공간)
             var lblContent = new Label
             {
                 Text = text,
                 ForeColor = Color.White,
-                TextAlign = ContentAlignment.MiddleLeft, // 중앙에서 왼쪽으로 변경
-                Dock = DockStyle.Fill,
-                Padding = new Padding(10, 0, 0, 0), // 왼쪽으로 10px 이동
-                Font = new Font("Segoe UI", 9f, FontStyle.Bold)
+                TextAlign = ContentAlignment.MiddleLeft,
+                Font = lblRank.Font,
+                AutoSize = false,
+                Location = new Point(lblRank.Right + 5, 0),
+                Width = panel.Width - lblRank.Width - 5, // 패널 폭에서 정확히 계산
+                Height = panel.Height
             };
 
             // 상위 3위 폰트 조절
@@ -597,13 +634,11 @@ namespace Police_Intranet
             if (rank == 2) lblContent.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             if (rank == 3) lblContent.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
 
-            panel.Controls.Add(lblContent); // 먼저 content
-            panel.Controls.Add(lblRank);     // 순위는 Dock.Left로 왼쪽 고정
+            panel.Controls.Add(lblRank);
+            panel.Controls.Add(lblContent);
 
             return panel;
         }
-
-
 
 
         private Label CreateEmptyLabel()
