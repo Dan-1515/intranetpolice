@@ -70,7 +70,6 @@ namespace Police_Intranet
             _ = LoadRidingUsersAsync();
             _ = LoadUsersAsync();
 
-            LoadUsersAsync();
             RefreshWorkingUsers();
             RefreshLbUser(); // 탭 전환 후에도 유지 가능하도록 수정
             this.reportWebhook = Webhook;
@@ -356,37 +355,61 @@ namespace Police_Intranet
             submit.Click += btnSubmit_Click;
             rightPanel.Controls.Add(submit);
 
-            lbUsers = new ListBox
+            // Panel 생성
+            Panel panel = new Panel
             {
                 Location = new Point(10, submit.Bottom + 10),
-                Size = new Size(rightPanel.Width - 20, 200),
+                Size = new Size(rightPanel.Width - 20, 180),
+                BackColor = Color.FromArgb(30, 30, 30),
+            };
+            rightPanel.Controls.Add(panel);
+
+            // ListBox 생성
+            lbUsers = new ListBox
+            {
+                Location = new Point(5, 5),
+                Dock = DockStyle.None,
+                Size = new Size(270, 180),
                 BackColor = Color.FromArgb(30, 30, 30),
                 ForeColor = Color.White,
-                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
-                BorderStyle = BorderStyle.FixedSingle,
-                SelectionMode = SelectionMode.MultiExtended,
-                DrawMode = DrawMode.OwnerDrawFixed,
-                ItemHeight = 16,
+                BorderStyle = BorderStyle.None, // 테두리는 Panel에서 그림
+                Font = new Font("Segoe UI", 10F)
             };
-            rightPanel.Controls.Add(lbUsers);
+            panel.Controls.Add(lbUsers);
+
+            // Panel Paint에서 흰 테두리만 그리기
+            panel.Paint += (s, e) =>
+            {
+                using (Pen pen = new Pen(Color.White, 2))
+                {
+                    // 펜 두께 고려해서 사각형 조정
+                    Rectangle rect = new Rectangle(1, 1, panel.Width - 3, panel.Height - 3);
+                    e.Graphics.DrawRectangle(pen, rect);
+                }
+            };
+
+            // 아이템 커스터마이징
             lbUsers.DrawItem += (s, e) =>
             {
                 if (e.Index < 0) return;
-                e.DrawBackground();
+
+                bool selected = (e.State & DrawItemState.Selected) == DrawItemState.Selected;
+                Color backColor = selected ? Color.DodgerBlue : lbUsers.BackColor;
+                Color textColor = selected ? Color.White : Color.White;
+
+                using (Brush backBrush = new SolidBrush(backColor))
+                    e.Graphics.FillRectangle(backBrush, e.Bounds);
 
                 string text = lbUsers.Items[e.Index].ToString();
+                using (Brush textBrush = new SolidBrush(textColor))
+                    e.Graphics.DrawString(text, e.Font, textBrush, e.Bounds.X + 5, e.Bounds.Y);
 
-                using (Brush brush = new SolidBrush(e.ForeColor))
-                {
-                    Rectangle rect = new Rectangle(
-                        e.Bounds.X + 5,  // 글자를 5px 오른쪽으로
-                        e.Bounds.Y,
-                        e.Bounds.Width - 5,
-                        e.Bounds.Height
-                    );
-                    e.Graphics.DrawString(text, e.Font, brush, rect);
-                }
+                e.DrawFocusRectangle();
+            };
 
+            lbUsers.DrawItem += (s, e) =>
+            {
+                
                 e.DrawFocusRectangle();
             };
 
@@ -569,7 +592,7 @@ namespace Police_Intranet
 
         private void CreateFineDetentionControls()
         {
-            int y = lbUsers.Bottom + 15;
+            int y = lbUsers.Bottom + 50;
             int gap = 5;
 
             // ===== 참여자 수 =====
@@ -776,6 +799,7 @@ namespace Police_Intranet
         {
             try
             {
+                // isapprove = true 필터 적용
                 var response = await SupabaseClient.Instance
                     .From<User>()
                     .Get();
@@ -792,7 +816,6 @@ namespace Police_Intranet
                 MessageBox.Show("유저 목록 로딩 실패: " + ex.Message);
             }
         }
-
 
         private void UpdateLbUsers(List<User> users)
         {
