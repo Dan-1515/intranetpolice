@@ -16,11 +16,13 @@ namespace Police_Intranet
         private Panel panelSignupWaiting;
         private Panel panelUserlist;
         private Panel panelWeekTime;
+        private Panel panelUsersRp;
 
         private ListBox lbWaiting;
         private ListBox lbUsers;
         private ListBox lbTimes;
         private ListBox lbRidingUsers;
+        private ListBox lbRpReset;
 
         private Button btnApprove;
         private Button btnReject;
@@ -105,7 +107,7 @@ namespace Police_Intranet
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 3,
-                RowCount = 1,
+                RowCount = 2,
                 Padding = new Padding(10)
             };
             for (int i = 0; i < 3; i++)
@@ -113,31 +115,71 @@ namespace Police_Intranet
             table.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
             // ─ 회원가입 대기 ─
-            panelSignupWaiting = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
-            panelSignupWaiting.Controls.Add(new Label() { Text = "회원가입 대기 목록", ForeColor = Color.White, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(80, 10), AutoSize = true });
+            panelSignupWaiting = new Panel() 
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(30, 30, 30),
+                Padding = new Padding(10) 
+            };
+            panelSignupWaiting.Controls.Add(new Label()
+            { 
+                Text = "회원가입 대기 목록", 
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 14, 
+                FontStyle.Bold),
+                Location = new Point(80, 10),
+                AutoSize = true 
+            });
 
-            lbWaiting = new ListBox() { Location = new Point(50, 50), Size = new Size(250, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
+            lbWaiting = new ListBox() 
+            {
+                Location = new Point(50, 50),
+                Size = new Size(250, 300),
+                BackColor = Color.FromArgb(50, 50, 50), 
+                ForeColor = Color.White };
             panelSignupWaiting.Controls.Add(lbWaiting);
             ApplyHorizontalCenterAlign(lbWaiting);
 
-            btnApprove = new Button() { Text = "가입 승인", Location = new Point(70, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(70, 70, 70), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnApprove = new Button() 
+            { 
+                Text = "가입 승인",
+                Location = new Point(70, 360), 
+                Size = new Size(100, 35), 
+                BackColor = Color.FromArgb(70, 70, 70), 
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat 
+            };
             btnApprove.Click += BtnApprove_Click;
             panelSignupWaiting.Controls.Add(btnApprove);
 
-            btnReject = new Button() { Text = "가입 거부", Location = new Point(180, 360), Size = new Size(100, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            btnReject = new Button() 
+            { 
+                Text = "가입 거부",
+                Location = new Point(180, 360),
+                Size = new Size(100, 35), 
+                BackColor = Color.FromArgb(150, 50, 50), 
+                ForeColor = Color.White, 
+                FlatStyle = FlatStyle.Flat 
+            };
             btnReject.Click += async (s, e) => await BtnReject_ClickAsync();
             panelSignupWaiting.Controls.Add(btnReject);
 
             // ─ 탑승 중 유저 ─
+            Panel panelRiding = new Panel() 
+            { 
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(30, 30, 30), 
+                Padding = new Padding(10) 
+            };
+
             Label lblRiding = new Label()
             {
                 Text = "마쯔다 운행 관리",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(90, 410),
                 AutoSize = true
             };
-            panelSignupWaiting.Controls.Add(lblRiding);
+            panelRiding.Controls.Add(lblRiding);
 
             lbRidingUsers = new ListBox()
             {
@@ -146,7 +188,7 @@ namespace Police_Intranet
                 BackColor = Color.FromArgb(50, 50, 50),
                 ForeColor = Color.White
             };
-            panelSignupWaiting.Controls.Add(lbRidingUsers);
+            panelRiding.Controls.Add(lbRidingUsers);
             ApplyHorizontalCenterAlign(lbRidingUsers);
 
             btnForceRelease = new Button()
@@ -161,11 +203,85 @@ namespace Police_Intranet
             btnForceRelease.Click += async (s, e) => await BtnForceRelease_ClickAsync();
             panelSignupWaiting.Controls.Add(btnForceRelease);
 
-            // ─ 유저 관리 ─
-            panelUserlist = new Panel() { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), Padding = new Padding(10) };
-            panelUserlist.Controls.Add(new Label() { Text = "전체 유저 목록", ForeColor = Color.White, Font = new Font("Segoe UI", 14, FontStyle.Bold), Location = new Point(100, 10), AutoSize = true });
+            // ─ RP 횟수 초기화 ─
+            Panel panelRpReset = new Panel()
+            {
+                Dock = DockStyle.Fill,
+                Location = new Point(20, 200), // lbUsers 리스트박스 + 기존 버튼 아래 위치
+                Size = new Size(350, 250),
+                BackColor = Color.FromArgb(30, 30, 30)
+            };
 
-            lbUsers = new ListBox() { Location = new Point(20, 50), Size = new Size(230, 300), BackColor = Color.FromArgb(50, 50, 50), ForeColor = Color.White };
+            // 라벨
+            Label lblRpReset = new Label()
+            {
+                Text = "RP 횟수 초기화",
+                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                ForeColor = Color.White,
+                Location = new Point(10, 10),
+                AutoSize = true
+            };
+            panelRpReset.Controls.Add(lblRpReset);
+
+            // 리스트박스 (유저 선택)
+            ListBox lbRpReset = new ListBox()
+            {
+                Location = new Point(10, lblRpReset.Bottom + 10),
+                Size = new Size(230, 120),
+                BackColor = Color.FromArgb(50, 50, 50),
+                ForeColor = Color.White
+            };
+            panelRpReset.Controls.Add(lbRpReset);
+            ApplyHorizontalCenterAlign(lbRpReset);
+
+            // 선택 유저 초기화 버튼
+            Button btnResetSelectedRp = new Button()
+            {
+                Text = "선택 초기화",
+                Location = new Point(10, lbRpReset.Bottom + 10),
+                Size = new Size(110, 35),
+                BackColor = Color.FromArgb(70, 70, 70),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnResetSelectedRp.Click += async (s, e) => await ResetSelectedUserRpAsync(lbRpReset);
+            panelRpReset.Controls.Add(btnResetSelectedRp);
+
+            // 전체 초기화 버튼
+            Button btnResetAllRp = new Button()
+            {
+                Text = "전체 초기화",
+                Location = new Point(130, lbRpReset.Bottom + 10),
+                Size = new Size(110, 35),
+                BackColor = Color.FromArgb(150, 50, 50),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnResetAllRp.Click += async (s, e) => await ResetAllUsersRpAsync();
+            panelRpReset.Controls.Add(btnResetAllRp);
+
+
+            // ─ 유저 관리 ─
+            panelUserlist = new Panel() {
+                Dock = DockStyle.Fill, 
+                BackColor = Color.FromArgb(30, 30, 30),
+                Padding = new Padding(10)
+            };
+            panelUserlist.Controls.Add(new Label() 
+            { 
+                Text = "전체 유저 목록",
+                ForeColor = Color.White, 
+                Font = new Font("Segoe UI", 14, FontStyle.Bold), 
+                Location = new Point(100, 10), AutoSize = true }
+            );
+
+            lbUsers = new ListBox()
+            { 
+                Location = new Point(20, 50), 
+                Size = new Size(230, 300),
+                BackColor = Color.FromArgb(50, 50, 50), 
+                ForeColor = Color.White
+            };
             lbUsers.SelectedIndexChanged += LbUsers_SelectedIndexChanged;
             panelUserlist.Controls.Add(lbUsers);
             ApplyHorizontalCenterAlign(lbUsers);
@@ -229,6 +345,8 @@ namespace Police_Intranet
             table.Controls.Add(panelSignupWaiting, 0, 0);
             table.Controls.Add(panelUserlist, 1, 0);
             table.Controls.Add(panelWeekTime, 2, 0);
+            table.Controls.Add(panelRiding, 0, 1);
+            table.Controls.Add(panelRpReset, 1, 1);
 
             this.Controls.Add(table);
         }
@@ -563,5 +681,75 @@ namespace Police_Intranet
                 MessageBox.Show("강제 해제 중 오류: " + ex.Message);
             }
         }
+        private async Task LoadRpUsersAsync()
+        {
+            lbRpReset.Items.Clear();
+            var resp = await client.From<User>().Get();
+            foreach (var u in resp.Models.Where(u => u.IsApproved == true))
+            {
+                lbRpReset.Items.Add($"{u.Username} | RP: {u.RP}");
+            }
+        }
+        private async Task ResetSelectedUserRpAsync(ListBox lb)
+        {
+            if (lb.SelectedItem == null)
+            {
+                MessageBox.Show("초기화할 유저를 선택하세요.");
+                return;
+            }
+
+            string username = lb.SelectedItem.ToString().Split('|')[0].Trim();
+
+            if (MessageBox.Show($"[ {username} ] 유저의 RP 횟수를 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                return;
+
+            var usersResp = await client.From<User>()
+                                        .Where(u => u.Username == username)
+                                        .Get();
+
+            var user = usersResp.Models.FirstOrDefault();
+            if (user != null)
+            {
+                // RP 초기화
+                user.RP = "0";
+
+                // Where 람다를 int 비교로 안전하게
+                await client.From<User>()
+                            .Where(u => u.Id == user.Id)
+                            .Update(user);
+
+                // 리스트 갱신
+                await LoadRpUsersAsync();
+                await LoadAllUsersAsync();
+                await LoadRidingUsersAsync();
+
+                MessageBox.Show($"[ {username} ] 유저의 RP 횟수가 초기화되었습니다.");
+            }
+        }
+
+        private async Task ResetAllUsersRpAsync()
+        {
+            if (MessageBox.Show("⚠ 모든 유저의 RP 횟수를 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                return;
+
+            if (MessageBox.Show("이 작업은 되돌릴 수 없습니다.\n정말 진행하시겠습니까?", "최종 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Stop) != DialogResult.Yes)
+                return;
+
+            var resp = await client.From<User>().Get();
+
+            foreach (var user in resp.Models)
+            {
+                user.RP = "0";
+                await client.From<User>().Where(u => u.Id == user.Id).Update(user);
+            }
+
+            await LoadRpUsersAsync();
+            await LoadAllUsersAsync();
+            await LoadRidingUsersAsync();
+
+            MessageBox.Show("모든 유저의 RP 횟수가 초기화되었습니다.");
+        }
+
+
     }
 }
