@@ -260,7 +260,7 @@ namespace Police_Intranet
             btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 180);
             lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 240);
             lblWeek.Location = new Point(cx - lblWeek.Width / 2, 280);
-            
+
             int gap = 20; // 두 랭킹 사이 간격
 
             workRankPanel.Location = new Point(cx - workRankPanel.Width - gap, 360);
