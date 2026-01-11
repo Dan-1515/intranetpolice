@@ -244,6 +244,11 @@ namespace Police_Intranet
             lblWeekTotal.TextAlign = ContentAlignment.MiddleCenter;
             lblRpTotal.TextAlign = ContentAlignment.MiddleCenter;
 
+            workRankPanel.FlowDirection = FlowDirection.TopDown;
+            workRankPanel.WrapContents = false;
+            rpRankPanel.FlowDirection = FlowDirection.TopDown;
+            rpRankPanel.WrapContents = false;
+
         }
 
         private void CenterUI()
@@ -477,15 +482,20 @@ namespace Police_Intranet
                 // 주간 출근 랭킹
                 // =========================
                 var allWorkRanks = works
-                    .Where(w => w.WeekTotalSeconds > 0)
                     .GroupBy(w => w.UserId)
-                    .Select(g => new
+                    .Select(g => g
+                        .OrderByDescending(x => x.WeekTotalSeconds)
+                        .First()
+                    )
+                    .Where(w => w.WeekTotalSeconds > 0)
+                    .OrderByDescending(w => w.WeekTotalSeconds)
+                    .Select(w => new
                     {
-                        UserId = g.Key,
-                        WeekSeconds = g.Max(x => x.WeekTotalSeconds)
+                        UserId = w.UserId,
+                        WeekSeconds = w.WeekTotalSeconds
                     })
-                    .OrderByDescending(x => x.WeekSeconds)
                     .ToList();
+
 
                 workRankPanel.Controls.Clear();
 
@@ -521,10 +531,12 @@ namespace Police_Intranet
                             TimeSpan ts = TimeSpan.FromSeconds(allWorkRanks[myIndex].WeekSeconds);
                             string text = $"{me.Username} {(int)ts.TotalHours}시간 {ts.Minutes:D2}분";
 
-                            // -위 표시, 하이라이트 적용
-                            workRankPanel.Controls.Add(CreateRankItem(-(myIndex + 1), text, true));
+                            workRankPanel.Controls.Add(
+                                CreateRankItem(-(myIndex + 1), text, true, 15) // 👈 여기
+                            );
                         }
                     }
+
                 }
 
                 // =========================
@@ -562,7 +574,7 @@ namespace Police_Intranet
                         var me = allRpRanks[myIndex];
                         string text = $"{me.Username} {me.RpCount}회";
 
-                        rpRankPanel.Controls.Add(CreateRankItem(-(myIndex + 1), text, true));
+                        rpRankPanel.Controls.Add(CreateRankItem(-(myIndex + 1), text, true, 15));
                     }
                 }
             }
@@ -578,7 +590,7 @@ namespace Police_Intranet
             }
         }
 
-        private Control CreateRankItem(int rank, string text, bool isMe = false)
+        private Control CreateRankItem(int rank, string text, bool isMe = false, int topMargin = 0)
         {
             // 🔹 순위 색상
             Color textColor = rank switch
@@ -596,9 +608,9 @@ namespace Police_Intranet
             int panelWidth = workRankPanel.ClientSize.Width; // workRankPanel 기준 폭
             var panel = new Panel
             {
-                Width = panelWidth,       // 가로 스크롤 방지
+                Width = workRankPanel.ClientSize.Width,
                 Height = 30,
-                Margin = new Padding(0, 0, 0, 2),
+                Margin = new Padding(0, topMargin, 0, 2),
                 BackColor = backColor
             };
 
@@ -666,7 +678,6 @@ namespace Police_Intranet
                 TextAlign = ContentAlignment.MiddleCenter
             };
         }
-
 
     }
 }
