@@ -466,10 +466,12 @@ namespace Police_Intranet
             {
                 // 🔹 유저 정보
                 var userRes = await supabase.From<User>()
-                    .Select("id, username, rp_count")
+                    .Select("id, username, rp_count, IsApproved")
                     .Get();
 
-                var users = userRes.Models ?? new List<User>();
+                var users = userRes.Models
+                    .Where(u => u.IsApproved == true)
+                    .ToList();
 
                 // 🔹 근무 정보
                 var workRes = await supabase.From<Work>()

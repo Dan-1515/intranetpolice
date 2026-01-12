@@ -368,14 +368,19 @@ namespace Police_Intranet
             lbUsers = new ListBox
             {
                 Location = new Point(5, 5),
-                Dock = DockStyle.None,
-                Size = new Size(270, 180),
+                Size = new Size(panel.Width - 10, panel.Height - 10),
                 BackColor = Color.FromArgb(30, 30, 30),
                 ForeColor = Color.White,
-                BorderStyle = BorderStyle.None, // 테두리는 Panel에서 그림
-                Font = new Font("Segoe UI", 10F)
+                BorderStyle = BorderStyle.None,
+                Font = new Font("Segoe UI", 10F),
+                SelectionMode = SelectionMode.MultiExtended,
+                DrawMode = DrawMode.OwnerDrawFixed,
+                IntegralHeight = false,
+                ItemHeight = 20
             };
             panel.Controls.Add(lbUsers);
+            lbUsers.SelectionMode = SelectionMode.MultiExtended;
+            lbUsers.DrawMode = DrawMode.OwnerDrawFixed;
 
             // Panel Paint에서 흰 테두리만 그리기
             panel.Paint += (s, e) =>
@@ -403,14 +408,6 @@ namespace Police_Intranet
                 string text = lbUsers.Items[e.Index].ToString();
                 using (Brush textBrush = new SolidBrush(textColor))
                     e.Graphics.DrawString(text, e.Font, textBrush, e.Bounds.X + 5, e.Bounds.Y);
-
-                e.DrawFocusRectangle();
-            };
-
-            lbUsers.DrawItem += (s, e) =>
-            {
-                
-                e.DrawFocusRectangle();
             };
 
             CreateFineDetentionControls();
@@ -614,6 +611,11 @@ namespace Police_Intranet
                 if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
                     e.Handled = true;
             };
+            txtPerson.TextChanged += (s, e) =>
+            {
+                UpdateFineAndDetention();  // 참여자 수 바뀌면 자동 계산
+            };
+
             rightPanel.Controls.Add(txtPerson);
             y += txtPerson.Height + gap;
 
@@ -733,57 +735,51 @@ namespace Police_Intranet
                 switch (crime)
                 {
                     case "ATM":
-                        totalFine = 100_000_000L;
-                        totalDetention = 10;
-                        totalBailFine = 100_000_000L + (participantCount * 100_000_000L);
+                        totalFine = 100_000_000L * participantCount;
+                        totalDetention = 0;
+                        totalBailFine = 100_000_000L * participantCount;
                         break;
 
                     case "편의점":
-                        totalFine = 200_000_000L;
-                        totalDetention = 10;
-                        totalBailFine = 200_000_000L + (participantCount * 100_000_000L);
+                        totalFine = 100_000_000L * participantCount;
+                        totalDetention = 0;
+                        totalBailFine = 100_000_000L * participantCount;
                         break;
 
                     case "남부빈집":
-                        totalFine = 100_000_000L;
-                        totalDetention = 10;
-                        totalBailFine = 100_000_000L + (participantCount * 100_000_000L);
+                        totalFine = 50_000_000L * participantCount;
+                        totalDetention = 0;
+                        totalBailFine = 50_000_000L * participantCount;
                         break;
 
                     case "보석상":
-                        totalFine = 1_200_000_000L;
-                        totalDetention = 30;
-                        totalBailFine = 1_200_000_000L + (participantCount * 200_000_000L);
+                        totalFine = 700_000_000L;
+                        totalDetention = 10;
+                        totalBailFine = 700_000_000L;
                         break;
 
                     case "남부은행":
-                        totalFine = 1_200_000_000L;
-                        totalDetention = 30;
-                        totalBailFine = 1_200_000_000L + (participantCount * 200_000_000L);
-                        break;
-
-                    case "경찰서털이":
-                        totalFine = 500_000_000L * participantCount;
-                        totalDetention = 30;
-                        totalBailFine = (500_000_000L + 200_000_000L) * participantCount;
+                        totalFine = 1_400_000_000L;
+                        totalDetention = 10;
+                        totalBailFine = 1_400_000_000L;
                         break;
 
                     case "수배":
-                        totalFine = 300_000_000L * participantCount;
+                        totalFine = 200_000_000L * participantCount;
                         totalDetention = 20;
-                        totalBailFine = (300_000_000L + 100_000_000L) * participantCount;
+                        totalBailFine = (200_000_000L + 50_000_000L) * participantCount;
                         break;
 
                     case "즉흥":
-                        totalFine = 400_000_000L * participantCount;
+                        totalFine = 200_000_000L * participantCount;
                         totalDetention = 25;
-                        totalBailFine = (400_000_000L + 150_000_000L) * participantCount;
+                        totalBailFine = (200_000_000L + 55_000_000L) * participantCount;
                         break;
 
                     case "영장":
-                        totalFine = 500_000_000L * participantCount;
+                        totalFine = 300_000_000L * participantCount;
                         totalDetention = 30;
-                        totalBailFine = (500_000_000L + 200_000_000L) * participantCount;
+                        totalBailFine = (400_000_000L + 500_000_000L) * participantCount;
                         break;
                 }
             }
