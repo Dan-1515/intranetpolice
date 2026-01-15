@@ -121,7 +121,6 @@ namespace Police_Intranet
                     { "남부빈집", new List<string> { "남부빈집" } },
                     { "보석상", new List<string> { "보석상" } },
                     { "남부은행", new List<string> { "남부은행" } },
-                    { "경찰서털이", new List<string> { "경찰서털이" } }
                 };
 
             string[] robberyNames = robberyData.Keys.ToArray();
