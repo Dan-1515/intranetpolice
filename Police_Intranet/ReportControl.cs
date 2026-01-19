@@ -103,7 +103,7 @@ namespace Police_Intranet
             FlowLayoutPanel flpRobbery = new FlowLayoutPanel
             {
                 Location = new Point(10, 85),
-                Size = new Size(650, 120),   // 줄바꿈 때문에 Height 증가
+                Size = new Size(390, 120),   // 줄바꿈 때문에 Height 증가
                 AutoSize = false,
                 BackColor = Color.Transparent,
 
@@ -154,7 +154,6 @@ namespace Police_Intranet
 
             FlowLayoutPanel flpStory = new FlowLayoutPanel
             {
-                // 🔥 위치 내려줌 (기존 190 → 265)
                 Location = new Point(10, 245),
 
                 Size = new Size(650, 65),
@@ -737,18 +736,21 @@ namespace Police_Intranet
                         totalFine = 100_000_000L * participantCount;
                         totalDetention = 0;
                         totalBailFine = 100_000_000L * participantCount;
+                        totalBailDetention = 0;
                         break;
 
                     case "편의점":
                         totalFine = 100_000_000L * participantCount;
                         totalDetention = 0;
                         totalBailFine = 100_000_000L * participantCount;
+                        totalBailDetention = 0;
                         break;
 
                     case "남부빈집":
                         totalFine = 50_000_000L * participantCount;
                         totalDetention = 0;
                         totalBailFine = 50_000_000L * participantCount;
+                        totalBailDetention = 0;
                         break;
 
                     case "보석상":

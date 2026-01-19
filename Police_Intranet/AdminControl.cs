@@ -755,10 +755,7 @@ namespace Police_Intranet
 
         private async Task ResetAllUsersRpAsync()
         {
-            if (MessageBox.Show("모든 유저의 RP 횟수를 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
-                return;
-
-            if (MessageBox.Show("이 작업은 되돌릴 수 없습니다.\n정말 진행하시겠습니까?", "최종 확인", MessageBoxButtons.YesNo, MessageBoxIcon.Stop) != DialogResult.Yes)
+            if (MessageBox.Show("모든 유저의 RP 횟수를 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo, MessageBoxIcon.None) != DialogResult.Yes)
                 return;
 
             var resp = await client.From<User>().Get();
