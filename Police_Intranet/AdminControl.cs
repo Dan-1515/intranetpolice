@@ -743,7 +743,7 @@ namespace Police_Intranet
                             .Where(u => u.Id == user.Id)
                             .Update(user);
 
-                // 리스트 갱신
+                // 리스트 갱신wlrm
                 await LoadRpUsersAsync();
                 await LoadAllUsersAsync();
                 await LoadRidingUsersAsync();

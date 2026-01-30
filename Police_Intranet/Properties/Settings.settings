@@ -5,7 +5,7 @@
     <Setting Name="AutoLoginEnabled" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="SavedUsername" Type="System.String" Scope="User">
+    <Setting Name="SavedUserid" Type="System.Int32" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="SavedPassword" Type="System.String" Scope="User">

@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Linq;
 using System.Windows.Forms;
 using Police_Intranet.Models;
-using Police_Intranet.Properties;
 using Supabase;
 
 namespace Police_Intranet
@@ -12,73 +10,58 @@ namespace Police_Intranet
         [STAThread]
         static void Main()
         {
+            ApplicationConfiguration.Initialize();
+
+            // ===============================
+            // Supabase 초기화 (단 한 번)
+            // ===============================
+            Client client;
             try
             {
-                ApplicationConfiguration.Initialize();
+                SupabaseClient.Initialize();
+                client = SupabaseClient.Instance;
 
-                // ===============================
-                // Supabase 초기화 (단 한 번)
-                // ===============================
-                Client client;
+                if (client == null)
+                    throw new Exception("Supabase Client 인스턴스가 null입니다.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Supabase 초기화 실패\n\n" + ex,
+                    "치명적 오류",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return;
+            }
 
-                try
+            // ===============================
+            // 로그인 / 회원가입 루프
+            // ===============================
+            while (true)
+            {
+                using (var loginForm = new Login())
                 {
-                    SupabaseClient.Initialize();
-                    client = SupabaseClient.Instance;
+                    var result = loginForm.ShowDialog();
 
-                    if (client == null)
-                        throw new Exception("Supabase Client 인스턴스가 null입니다.");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(
-                        "Supabase 초기화 실패\n\n" + ex,
-                        "치명적 오류",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
-                    );
-                    return;
-                }
+                    // 🔴 X 버튼 → 프로그램 종료
+                    if (result == DialogResult.Cancel)
+                        return;
 
-                // ===============================
-                // 로그인 처리
-                // ===============================
-                User loggedInUser = null;
-
-                // 🔹 자동 로그인 시도
-                if (Settings.Default.AutoLogin &&
-                    !string.IsNullOrWhiteSpace(Settings.Default.SavedUsername))
-                {
-                    try
+                    // 🟡 회원가입으로 이동
+                    if (result == DialogResult.Yes)
                     {
-                        var result = client
-                            .From<User>()
-                            .Where(u => u.Username == Settings.Default.SavedUsername)
-                            .Get()
-                            .GetAwaiter()
-                            .GetResult();
-
-                        var user = result?.Models?.FirstOrDefault();
-
-                        if (user != null && user.IsApproved == true)
-                            loggedInUser = user;
+                        using (var signupForm = new Signup())
+                        {
+                            signupForm.ShowDialog();
+                            // 회원가입 끝나면 다시 로그인으로
+                            continue;
+                        }
                     }
-                    catch
+
+                    // 🟢 로그인 성공
+                    if (result == DialogResult.OK)
                     {
-                        loggedInUser = null;
-                    }
-                }
-
-                // 🔹 자동 로그인 실패 → 로그인 폼
-                if (loggedInUser == null)
-                {
-                    using (var loginForm = new Login())
-                    {
-                        var result = loginForm.ShowDialog();
-
-                        if (result != DialogResult.OK)
-                            return;
-
                         if (loginForm.LoggedInUser == null)
                         {
                             MessageBox.Show(
@@ -90,24 +73,11 @@ namespace Police_Intranet
                             return;
                         }
 
-                        loggedInUser = loginForm.LoggedInUser;
+                        // 메인폼 실행
+                        Application.Run(new Main(loginForm.LoggedInUser, client));
+                        return;
                     }
                 }
-
-                // ===============================
-                // 메인 폼 실행
-                // ===============================
-                Application.Run(new Main(loggedInUser, client));
-            }
-            catch (Exception ex)
-            {
-                // 🔥 여기 걸리면 exe 실행 즉시 죽던 원인임
-                MessageBox.Show(
-                    "프로그램 시작 중 치명적인 오류 발생\n\n" + ex,
-                    "Fatal Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
             }
         }
     }

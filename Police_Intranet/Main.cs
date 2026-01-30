@@ -8,7 +8,6 @@ using System.Drawing;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Reflection;
 
 namespace Police_Intranet
 {
@@ -186,7 +185,7 @@ namespace Police_Intranet
                 this.Hide();
 
                 Settings.Default.AutoLogin = false;
-                Settings.Default.SavedUsername = "";
+                Settings.Default.SavedUserid = 0;
                 Settings.Default.Save();
 
                 using (var loginForm = new Login())

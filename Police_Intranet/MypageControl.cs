@@ -113,8 +113,8 @@ namespace Police_Intranet
         private async Task LoadWeekFromLatestRowAsync()
         {
             DateTime today = GetKstNow().Date;
+            // 주간 : 월요일 ~ 일요일 
             int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
-
             DateTime weekStart = today.AddDays(-diff);
             DateTime weekEnd = weekStart.AddDays(7);
 

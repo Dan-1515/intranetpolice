@@ -9,6 +9,7 @@ namespace Police_Intranet
         private System.ComponentModel.IContainer components = null;
 
         private PictureBox picLogo;
+        private TextBox txtUserid;
         private TextBox txtUsername;
         private TextBox txtPassword;
         private Button btnLogin;
@@ -28,6 +29,7 @@ namespace Police_Intranet
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Login));
             pnlContainer = new Panel();
             picLogo = new PictureBox();
+            txtUserid = new TextBox();
             txtUsername = new TextBox();
             txtPassword = new TextBox();
             chkAutoLogin = new CheckBox();
@@ -41,7 +43,7 @@ namespace Police_Intranet
             // 
             // pnlContainer
             // 
-            pnlContainer.Controls.Add(txtUsername);
+            pnlContainer.Controls.Add(txtUserid);
             pnlContainer.Controls.Add(txtPassword);
             pnlContainer.Controls.Add(chkAutoLogin);
             pnlContainer.Controls.Add(btnLogin);
@@ -64,6 +66,17 @@ namespace Police_Intranet
             this.Controls.Add(picLogo);
             picLogo.BringToFront();
 
+            // 
+            // txtUsername
+            // 
+            txtUserid.BackColor = Color.FromArgb(45, 45, 45);
+            txtUserid.BorderStyle = BorderStyle.FixedSingle;
+            txtUserid.ForeColor = Color.White;
+            txtUserid.Location = new Point(50, 120);
+            txtUserid.Name = "txtUserid";
+            txtUserid.PlaceholderText = "고유번호";
+            txtUserid.Size = new Size(230, 23);
+            txtUserid.TabIndex = 1;
             // 
             // txtUsername
             // 

@@ -11,13 +11,13 @@ namespace Police_Intranet.Models
         [PrimaryKey("id", false)]
         public int Id { get; set; }
 
+        [Column("user_id")]
+        [JsonProperty("user_id")]
+        public int? UserId { get; set; }
+
         [Column("username")]
         [JsonProperty("username")] // JsonPropertyName 대신 JsonProperty 사용
         public string Username { get; set; }
-
-        // [Column("userid")]
-        // [JsonProperty("userid")]
-        // public string UserId { get; set; }
 
         [Column("password_hash")]
         [JsonProperty("password_hash")]

@@ -37,13 +37,12 @@ namespace Police_Intranet.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string SavedUsername {
+        public int SavedUserid {
             get {
-                return ((string)(this["SavedUsername"]));
+                return ((int)(this["SavedUserid"]));
             }
             set {
-                this["SavedUsername"] = value;
+                this["SavedUserid"] = value;
             }
         }
         

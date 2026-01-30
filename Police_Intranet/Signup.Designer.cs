@@ -8,6 +8,7 @@ namespace Police_Intranet
     {
         private System.ComponentModel.IContainer components = null;
 
+        private TextBox txtUserid;
         private TextBox txtUsername;
         private TextBox txtPassword;
         private Button btnRegister;
@@ -27,19 +28,18 @@ namespace Police_Intranet
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Signup));
             pnlContainer = new Panel();
             picLogo = new PictureBox();
+            txtUserid = new TextBox();
             txtUsername = new TextBox();
             txtPassword = new TextBox();
             btnRegister = new Button();
             btnSignin = new Button();
-
             pnlContainer.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picLogo).BeginInit();
             SuspendLayout();
-
             // 
             // pnlContainer
             // 
-            pnlContainer.Controls.Add(picLogo);
+            pnlContainer.Controls.Add(txtUserid);
             pnlContainer.Controls.Add(txtUsername);
             pnlContainer.Controls.Add(txtPassword);
             pnlContainer.Controls.Add(btnRegister);
@@ -48,45 +48,50 @@ namespace Police_Intranet
             pnlContainer.Name = "pnlContainer";
             pnlContainer.Size = new Size(330, 300);
             pnlContainer.TabIndex = 0;
-
             // 
             // picLogo
             // 
-            picLogo.Image = Properties.Resource1.policee; // 리소스 로고 이미지
+            picLogo.Image = Properties.Resource1.policee;
             picLogo.Location = new Point(200, 80);
             picLogo.Name = "picLogo";
             picLogo.Size = new Size(390, 90);
             picLogo.SizeMode = PictureBoxSizeMode.Zoom;
             picLogo.TabIndex = 0;
             picLogo.TabStop = false;
-            this.Controls.Add(picLogo);
-            picLogo.BringToFront();
-
+            // 
+            // txtUserid
+            // 
+            txtUserid.BackColor = Color.FromArgb(45, 45, 45);
+            txtUserid.BorderStyle = BorderStyle.FixedSingle;
+            txtUserid.ForeColor = Color.White;
+            txtUserid.Location = new Point(50, 120);
+            txtUserid.Name = "txtUserid";
+            txtUserid.PlaceholderText = "고유번호";
+            txtUserid.Size = new Size(230, 23);
+            txtUserid.TabIndex = 1;
             // 
             // txtUsername
             // 
             txtUsername.BackColor = Color.FromArgb(45, 45, 45);
             txtUsername.BorderStyle = BorderStyle.FixedSingle;
             txtUsername.ForeColor = Color.White;
-            txtUsername.Location = new Point(50, 120);
+            txtUsername.Location = new Point(50, 150);
             txtUsername.Name = "txtUsername";
             txtUsername.PlaceholderText = "닉네임";
             txtUsername.Size = new Size(230, 23);
-            txtUsername.TabIndex = 1;
-
+            txtUsername.TabIndex = 2;
             // 
             // txtPassword
             // 
             txtPassword.BackColor = Color.FromArgb(45, 45, 45);
             txtPassword.BorderStyle = BorderStyle.FixedSingle;
             txtPassword.ForeColor = Color.White;
-            txtPassword.Location = new Point(50, 155);
+            txtPassword.Location = new Point(50, 180);
             txtPassword.Name = "txtPassword";
             txtPassword.PlaceholderText = "비밀번호";
             txtPassword.Size = new Size(230, 23);
-            txtPassword.TabIndex = 2;
+            txtPassword.TabIndex = 3;
             txtPassword.UseSystemPasswordChar = true;
-
             // 
             // btnRegister
             // 
@@ -97,11 +102,12 @@ namespace Police_Intranet
             btnRegister.Location = new Point(50, 210);
             btnRegister.Name = "btnRegister";
             btnRegister.Size = new Size(230, 30);
-            btnRegister.TabIndex = 3;
+            btnRegister.TabIndex = 4;
             btnRegister.Text = "회원가입";
             btnRegister.UseVisualStyleBackColor = false;
-            btnRegister.Click += BtnRegister_Click;
-
+            // 
+            // btnSignin
+            // 
             btnSignin.BackColor = Color.FromArgb(70, 70, 70);
             btnSignin.FlatAppearance.BorderSize = 0;
             btnSignin.FlatStyle = FlatStyle.Flat;
@@ -109,11 +115,9 @@ namespace Police_Intranet
             btnSignin.Location = new Point(50, 250);
             btnSignin.Name = "btnSignin";
             btnSignin.Size = new Size(230, 30);
-            btnSignin.TabIndex = 4;
+            btnSignin.TabIndex = 5;
             btnSignin.Text = "로그인 하러가기";
-            btnSignin.Click += BtnSignin_Click;
-
-
+            btnSignin.UseVisualStyleBackColor = false;
             // 
             // Signup
             // 
@@ -121,6 +125,7 @@ namespace Police_Intranet
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(45, 45, 45);
             ClientSize = new Size(800, 450);
+            Controls.Add(picLogo);
             Controls.Add(pnlContainer);
             Icon = (Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
@@ -129,8 +134,6 @@ namespace Police_Intranet
             StartPosition = FormStartPosition.CenterScreen;
             Text = "회원가입";
             Load += Signup_Load;
-
-
             pnlContainer.ResumeLayout(false);
             pnlContainer.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)picLogo).EndInit();
