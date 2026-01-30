@@ -94,7 +94,7 @@ namespace Police_Intranet
             }
 
             SetupButton(this.btnAdmin, "🛠 관리자", this.btnAdmin_Click);
-            SetupButton(this.btnReport, "📑 보고서&&마쯔다", this.btnReport_Click);
+            SetupButton(this.btnReport, "📑 보고서&&맥비", this.btnReport_Click);
             SetupButton(this.btnSideNotice, "🚨 사이드 공지", this.btnSideNotice_Click);
             SetupButton(this.btnCalculator, "⚖︎ 법률 계산기", this.btnCalculator_Click);
             SetupButton(this.btnMypage, "👤 마이페이지", this.btnMypage_Click);
@@ -138,7 +138,7 @@ namespace Police_Intranet
             this.Controls.Add(this.mainPanel);
             this.Controls.Add(this.leftSidebarPanel);
             this.Name = "Main";
-            this.Text = "젤리 경찰청 인트라넷";
+            this.Text = "치즈 경찰청 인트라넷";
 
             this.leftSidebarPanel.ResumeLayout(false);
             this.leftSidebarContentPanel.ResumeLayout(false);

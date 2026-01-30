@@ -434,21 +434,21 @@ namespace Police_Intranet
                 totalFine = Math.Max(0, totalFine / 2);
                 totalBailFine = Math.Max(0, totalBailFine / 2);
 
-                if (totalDetention > 120)
+                if (totalDetention > 150)
                 {
-                    // 원래 합계가 120분 초과 → 120에서 반 계산
-                    totalDetention = 120 / 2;
+                    // 원래 합계가 150분 초과 → 120에서 반 계산
+                    totalDetention = 150 / 2;
                 }
                 else
                 {
-                    // 원래 합계가 120분 이하 → 합계에서 반 계산
+                    // 원래 합계가 150분 이하 → 합계에서 반 계산
                     totalDetention = Math.Max(0, totalDetention / 2);
                 }
             }
             else
             {
-                if (totalDetention > 120)
-                    totalDetention = 120;
+                if (totalDetention > 150)
+                    totalDetention = 150;
             }
 
             // 벌금은 원화 3자리 콤마 포맷 + "원"

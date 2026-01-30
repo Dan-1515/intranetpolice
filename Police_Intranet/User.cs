@@ -19,6 +19,8 @@ namespace Police_Intranet.Models
         [JsonProperty("username")] // JsonPropertyName 대신 JsonProperty 사용
         public string Username { get; set; }
 
+        public override string ToString() => $"{UserId} {Username}";
+
         [Column("password_hash")]
         [JsonProperty("password_hash")]
         public string PasswordHash { get; set; }

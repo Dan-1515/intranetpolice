@@ -188,7 +188,7 @@ namespace Police_Intranet
             mainPanel.Controls.Add(flpStory);
 
 
-            // 마쯔다 운행표 & 보고서
+            // 맥비 운행표 & 보고서
             int panelsTop = flpStory.Bottom + 40;
             int panelsHeight = 300;
             int panelsWidth = (flpStory.Width - 25) / 2;
@@ -203,10 +203,10 @@ namespace Police_Intranet
 
             Label lblPanelLeftTitle = new Label
             {
-                Text = "🚔 마쯔다 운행표",
+                Text = "🚔 맥비 운행표",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                Location = new Point(75, 5),
+                Location = new Point(90, 5),
                 AutoSize = true
             };
             panelLeft.Controls.Add(lblPanelLeftTitle);
@@ -234,10 +234,10 @@ namespace Police_Intranet
 
             Label lblPanelRightTitle = new Label
             {
-                Text = "🚔 마쯔다 운행 보고서",
+                Text = "🚔 맥비 운행 보고서",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                Location = new Point(55, 5),
+                Location = new Point(65, 5),
                 AutoSize = true
             };
             panelRight.Controls.Add(lblPanelRightTitle);
@@ -580,7 +580,7 @@ namespace Police_Intranet
             lbUser.Items.Clear();
             foreach (var user in ridingUsers)
             {
-                string displayText = $"{user.Username} | {user.Level} | {user.RP}";
+                string displayText = $"{user.UserId} | {user.Username} | {user.Level} | {user.RP}";
                 lbUser.Items.Add(displayText);
             }
         }
@@ -820,8 +820,7 @@ namespace Police_Intranet
 
             foreach (var user in users)
             {
-                string text = $"{user.Username}";
-                lbUsers.Items.Add(text);
+                lbUsers.Items.Add(user);
             }
         }
 
@@ -836,7 +835,7 @@ namespace Police_Intranet
                 }
 
                 // ✅ 참여 경관 문자열 (로그용)
-                string participantPolice = string.Join(", ", lbUsers.SelectedItems.Cast<string>());
+                string participantPolice = string.Join(", ", lbUsers.SelectedItems.Cast<User>().Select(u => u.Username));
                 if (string.IsNullOrWhiteSpace(participantPolice))
                     participantPolice = "없음";
 
@@ -860,15 +859,16 @@ namespace Police_Intranet
                 );
 
                 // 🔥 2. RP 참여자 RP 횟수 증가
-                var participantUsernames = lbUsers.SelectedItems
-                    .Cast<string>()
+                var participantId = lbUsers.SelectedItems
+                    .Cast<User>()
+                    .Select(u => u.UserId)
                     .ToList();
 
-                foreach (var username in participantUsernames)
+                foreach (var userId in participantId)
                 {
                     var user = await SupabaseClient.Instance
                         .From<User>()
-                        .Filter("username", Supabase.Postgrest.Constants.Operator.Equals, username)
+                        .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, userId)
                         .Single();
 
                     if (user != null)

@@ -25,18 +25,18 @@ namespace Police_Intranet
         private readonly (string Text, string Message)[][] categoriesData = new (string, string)[][]
         {
             new (string, string)[] { ("출석요구", "까지 경찰청으로 출석바랍니다."), ("수배", "까지 수배RP를 진행합니다. 시민 여러분들께서는 협조 부탁드립니다.") },
-            new (string, string)[] { ("운전 면접", "/경찰청 경찰청에서 안내 드립니다. 운전 시험 진행 중으로 사이렌 소리가 들리면 시민 여러분들은 갓길로 피양하여 주시길 부탁 드립니다.") },
-            new (string, string)[] { ("이륙 공지", "/경찰청 경찰청에서 안내 드립니다. 경찰청 헬기 이륙합니다."), ("항공 순찰", "/경찰청 경찰청에서 안내 드립니다. 헬기 순찰을 위해 경찰청 헬기 이륙합니다."), ("면접&&시험", "/경찰청 경찰청에서 안내 드립니다. 헬기 면접&시험 진행을 위해 경찰청 헬기 이륙합니다."), ("헬기 연습", "/경찰청 경찰청에서 안내 드립니다. 경찰청 헬기 이륙합니다.") },
+            new (string, string)[] { ("운전 면접", "/팩션공지 치즈 경찰청에서 안내 드립니다. 운전 시험 진행 중으로 사이렌 소리가 들리면 시민 여러분들은 갓길로 피양하여 주시길 부탁 드립니다.") },
+            new (string, string)[] { ("이륙 공지", "/팩션공지 치즈 경찰청에서 안내 드립니다. 경찰청 헬기 이륙합니다."), ("항공 순찰", "/팩션공지 경찰청에서 안내 드립니다. 헬기 순찰을 위해 경찰청 헬기 이륙합니다."), ("면접&&시험", "/팩션공지 치즈 경찰청에서 안내 드립니다. 헬기 면접&시험 진행을 위해 경찰청 헬기 이륙합니다."), ("헬기 연습", "/경찰청 경찰청에서 안내 드립니다. 경찰청 헬기 이륙합니다.") },
             new (string, string)[] {
-                ("남부 ATM", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ 남부 ATM ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
-                ("남부 빈집", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ 남부 빈집 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
-                ("남부 편의점", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ 남부 편의점 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
-                ("신경 옆 편의점", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ 신경 옆 편의점 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
-                ("신경 위 편의점", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ 신경 위 편의점 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
-                ("남부은행 뒤 편의점 ", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ 남부은행 뒤 편의점 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
-                ("보석상", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ 보석상 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
-                ("남부 은행", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ 남부 은행 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
-                ("영장", "/경찰청 경찰청에서 안내 드립니다. 현 시간부로 [ OOO 사유지 ]에서 영장RP를 진행합니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("206", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 206번지 ATM ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("333", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 333번지 편의점 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("449", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 449번지 편의점 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("574", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 574번지 편의점 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("575", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 575번지 남부은행 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("584 ", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 584번지 ATM ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("692", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 692번지 빈집 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("697", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 697번지 보석상 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
+                ("경털1차", "/팩션공지 치즈 경찰청에서 안내 드립니다. 현 시간부로 [ 남부 경찰청 서버실 ]에 강도가 침입했습니다. 주위 한 블럭 이내로 접근시 공범으로 간주되어 사살 될 수 있습니다. 시민 여러분들의 협조를 부탁 드립니다."),
             }
         };
 
@@ -84,7 +84,7 @@ namespace Police_Intranet
                 Location = new Point(10, yOffset + 3),
                 AutoSize = true
             };
-            // mainPanel.Controls.Add(lblId);
+            mainPanel.Controls.Add(lblId);
 
             txtId = new TextBox
             {
@@ -93,20 +93,20 @@ namespace Police_Intranet
                 BackColor = Color.FromArgb(30, 30, 30),
                 ForeColor = Color.White
             };
-            // mainPanel.Controls.Add(txtId);
+            mainPanel.Controls.Add(txtId);
 
             Label lblName = new Label
             {
                 Text = "닉네임 :",
                 ForeColor = Color.White,
-                Location = new Point(10, yOffset + 3),
+                Location = new Point(190, yOffset + 3),
                 AutoSize = true
             };
             mainPanel.Controls.Add(lblName);
 
             txtName = new TextBox
             {
-                Location = new Point(60, yOffset),
+                Location = new Point(250, yOffset),
                 Size = new Size(100, 40),
                 BackColor = Color.FromArgb(30, 30, 30),
                 ForeColor = Color.White
@@ -117,14 +117,14 @@ namespace Police_Intranet
             {
                 Text = "현재시각(시) :",
                 ForeColor = Color.White,
-                Location = new Point(180, yOffset + 3),
+                Location = new Point(370, yOffset + 3),
                 AutoSize = true
             };
             mainPanel.Controls.Add(lblTime);
 
             txtHour = new TextBox
             {
-                Location = new Point(265, yOffset),
+                Location = new Point(460, yOffset),
                 Size = new Size(100, 40),
                 BackColor = Color.FromArgb(30, 30, 30),
                 ForeColor = Color.White
@@ -135,14 +135,14 @@ namespace Police_Intranet
             {
                 Text = "현재시각(분) :",
                 ForeColor = Color.White,
-                Location = new Point(385, yOffset + 3),
+                Location = new Point(570, yOffset + 3),
                 AutoSize = true
             };
             mainPanel.Controls.Add(lblColon);
 
             txtMinute = new TextBox
             {
-                Location = new Point(470, yOffset),
+                Location = new Point(660, yOffset),
                 Size = new Size(100, 25),
                 BackColor = Color.FromArgb(30, 30, 30),
                 ForeColor = Color.White
@@ -327,7 +327,7 @@ namespace Police_Intranet
 
                 string timePart = validTime ? $"{hour:D2}:{minute:D2}" : "";
 
-                string infoPart = $"[{name}]";
+                string infoPart = $"[{id} / {name}]";
                 if (!string.IsNullOrWhiteSpace(timePart))
                     infoPart += $" / [{timePart}]";
 
@@ -336,7 +336,7 @@ namespace Police_Intranet
                     // 메시지 텍스트에서 앞/뒤 문장 분리
                     string message = btn.Tag.ToString();
 
-                    finalText = $"/경찰청 경찰청에서 안내 드립니다. {infoPart} {message}";
+                    finalText = $"/팩션공지 치즈 경찰청에서 안내 드립니다. {infoPart} {message}";
                 }
                 else
                 {
