@@ -77,6 +77,15 @@ namespace Police_Intranet
 
         private void InitializeRpUi()
         {
+            Panel topSpacer = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 40,
+                BackColor = Color.FromArgb(30, 30, 30)
+            };
+
+            this.Controls.Add(topSpacer);
+
             this.Dock = DockStyle.Fill;
             this.BackColor = Color.FromArgb(30, 30, 30);
 
@@ -87,6 +96,7 @@ namespace Police_Intranet
                 BackColor = Color.FromArgb(30, 30, 30),
             };
             this.Controls.Add(mainPanel);
+            mainPanel.BringToFront();
 
             // 강도RP 버튼
             Label lblRobbery = new Label
@@ -121,6 +131,7 @@ namespace Police_Intranet
                     { "남부빈집", new List<string> { "남부빈집" } },
                     { "보석상", new List<string> { "보석상" } },
                     { "남부은행", new List<string> { "남부은행" } },
+                    { "경털1차", new List<string> { "경털1차" } },
                 };
 
             string[] robberyNames = robberyData.Keys.ToArray();
@@ -147,14 +158,14 @@ namespace Police_Intranet
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
 
                 // 🔥 위치 내려줌 (기존 155 → 235)
-                Location = new Point(10, 215),
+                Location = new Point(10, 205),
                 AutoSize = true
             };
             mainPanel.Controls.Add(lblStory);
 
             FlowLayoutPanel flpStory = new FlowLayoutPanel
             {
-                Location = new Point(10, 245),
+                Location = new Point(10, 225),
 
                 Size = new Size(650, 65),
                 AutoSize = false,
@@ -177,7 +188,7 @@ namespace Police_Intranet
             storyButtons = storyNames.Select(name =>
             {
                 var b = CreateSelectableButton(name, storyData[name]);
-                b.Margin = new Padding(5);   // spacing 통일
+                b.Margin = new Padding(3);   // spacing 통일
                 return b;
             }).ToArray();
 
