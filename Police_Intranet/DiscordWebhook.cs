@@ -56,7 +56,7 @@ namespace Police_Intranet.Services
 
         // ===================== 출퇴근 로그 전송 =====================
         
-        public async Task SendWorkLogAsync(string userName, bool isCheckedIn, User user, DateTime checkInTime, DateTime? checkOutTime)
+        public async Task SendWorkLogAsync(int userId, string userName, bool isCheckedIn, User user, DateTime checkInTime, DateTime? checkOutTime)
         {
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
@@ -67,6 +67,7 @@ namespace Police_Intranet.Services
             if (isCheckedIn)
             {
                 description =
+                    $"**고유번호 : ** {userId}\n\n" +
                     $"**닉네임 : ** {userName}\n\n" +
                     $"**상태 : ** {action}";
             }
@@ -76,6 +77,7 @@ namespace Police_Intranet.Services
                 string workedTimeText = FormatTimeSpan(workedTime);
 
                 description =
+                    $"**고유번호 : ** {userId}\n\n" +
                     $"**닉네임 : ** {userName}\n\n" +
                     $"**상태 : ** {action}\n\n" +
                     $"**총 출근시간 : ** {workedTimeText}";

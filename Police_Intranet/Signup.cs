@@ -96,7 +96,7 @@ namespace Police_Intranet
                     UserId = userId,
                     Username = username,
                     PasswordHash = passwordHash,
-                    Rank = "일반",
+                    Rank = "일반직",
                     CreatedAt = DateTime.UtcNow,
                     IsWorking = false,
                     IsApproved = false,

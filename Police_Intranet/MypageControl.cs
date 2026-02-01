@@ -12,6 +12,7 @@ namespace Police_Intranet
 {
     public partial class MypageControl : UserControl
     {
+        private Label lblUserid;
         private Label lblNickname;
         private Label lblRank;
         private Button btnToggleWork;
@@ -43,18 +44,14 @@ namespace Police_Intranet
         private readonly int baseWeekY = 204;
 
         private readonly string supabaseUrl = "https://eeyxcupedhyoatovzepr.supabase.co";
-        private readonly string supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleXhjdXBlZGh5b2F0b3Z6ZXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NDAzNjEsImV4cCI6MjA3OTIxNjM2MX0.jQKzE_ZO1t8x8heY0mqs0pttsb7R06KIGcDVOihwg-k";
+        private readonly string supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleHhjdXBlZGh5b2F0b3Z6ZXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NDAzNjEsImV4cCI6MjA3OTIxNjM2MX0.jQKzE_ZO1t8x8heY0mqs0pttsb7R06KIGcDVOihwg-k";
 
         public MypageControl(User user, Client client)
         {
             currentUser = user;
             workWebhook = new DiscordWebhook(WebhookUrls.WorkLog);
 
-            supabase = new Supabase.Client(
-                supabaseUrl,
-                supabaseKey,
-                new SupabaseOptions { AutoConnectRealtime = false }
-            );
+            supabase = client ?? throw new ArgumentNullException(nameof(client));
 
             InitializeUi();
         }
@@ -63,7 +60,6 @@ namespace Police_Intranet
         {
             await LoadTodayWorkAsync();
             await LoadUserRanksAsync();
-
         }
 
         private async Task LoadTodayWorkAsync()
@@ -85,9 +81,7 @@ namespace Police_Intranet
                 todayTotal = TimeSpan.Zero;
                 isCheckedIn = false;
 
-                // 오늘 기록 없으면 → 주간 최신값 로드
                 await LoadWeekFromLatestRowAsync();
-
                 runtimeWorkStart = null;
             }
             else
@@ -96,7 +90,6 @@ namespace Police_Intranet
                 weekTotal = TimeSpan.FromSeconds(todayWork.WeekTotalSeconds);
                 isCheckedIn = todayWork.IsWorking;
 
-                // 🔥 여기 중요
                 if (isCheckedIn && todayWork.LastWorkStart.HasValue)
                     runtimeWorkStart = todayWork.LastWorkStart.Value;
                 else
@@ -105,15 +98,13 @@ namespace Police_Intranet
 
             currentKstDate = GetKstNow().Date;
 
-            btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
+            UpdateDutyButton(isCheckedIn ? "on_duty" : "off_duty");
             UpdateWorkTimeLabel();
         }
-
 
         private async Task LoadWeekFromLatestRowAsync()
         {
             DateTime today = GetKstNow().Date;
-            // 주간 : 월요일 ~ 일요일 
             int diff = (7 + (today.DayOfWeek - DayOfWeek.Monday)) % 7;
             DateTime weekStart = today.AddDays(-diff);
             DateTime weekEnd = weekStart.AddDays(7);
@@ -138,6 +129,14 @@ namespace Police_Intranet
             Dock = DockStyle.Fill;
             BackColor = Color.FromArgb(30, 30, 30);
 
+            lblUserid = new Label
+            {
+                Text = $"고유번호: {currentUser.UserId}",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                AutoSize = true
+            };
+
             lblNickname = new Label
             {
                 Text = $"닉네임: {currentUser.Username}",
@@ -154,23 +153,61 @@ namespace Police_Intranet
                 AutoSize = true
             };
 
-            lblHireDate = new Label
-            {
-                Text = $"입사일: {FormatHireDate(currentUser.CreatedAt)}",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 13, FontStyle.Bold),
-                AutoSize = true
-            };
-
             btnToggleWork = new Button
             {
-                Text = "출근",
+                Text = "확인중",
                 Size = new Size(100, 40),
                 BackColor = Color.FromArgb(100, 140, 240),
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                Enabled = true
             };
-            btnToggleWork.Click += async (s, e) => await ToggleWorkAsync();
+
+            // 🔹 여기 클릭 이벤트 추가 (즉시 UI 반영)
+            btnToggleWork.Click += async (s, e) =>
+            {
+                btnToggleWork.Enabled = false;
+                if (!isCheckedIn)
+                {
+                    // 출근
+                    runtimeWorkStart = DateTime.UtcNow;
+                    isCheckedIn = true;
+
+                    if (todayWork == null)
+                    {
+                        todayWork = new Work
+                        {
+                            UserId = currentUser.Id,
+                            Date = GetKstNow().ToString("yyyy-MM-dd"),
+                            TodayTotalSeconds = 0,
+                            WeekTotalSeconds = (long)weekTotal.TotalSeconds,
+                            IsWorking = true,
+                            LastWorkStart = runtimeWorkStart
+                        };
+
+                        await supabase.From<Work>().Insert(todayWork);
+                    }
+                    else
+                    {
+                        todayWork.IsWorking = true;
+                        todayWork.LastWorkStart = runtimeWorkStart;
+                        await supabase.From<Work>()
+                            .Where(x => x.Id == todayWork.Id)
+                            .Set(x => x.IsWorking, true)
+                            .Set(x => x.LastWorkStart, runtimeWorkStart)
+                            .Update();
+                    }
+
+                    UpdateDutyButton("on_duty");
+                }
+                else
+                {
+                    // 퇴근
+                    await ForceCheckoutInternalAsync(DateTime.UtcNow);
+                }
+
+                btnToggleWork.Enabled = true;
+            };
 
             lblWorkTime = new Label
             {
@@ -208,7 +245,6 @@ namespace Police_Intranet
                 AutoSize = true
             };
 
-            // 🔹 랭킹 Panel 추가
             workRankPanel = new FlowLayoutPanel
             {
                 Width = 300,
@@ -227,7 +263,7 @@ namespace Police_Intranet
 
             Controls.AddRange(new Control[]
             {
-                lblNickname, lblRank, lblHireDate, btnToggleWork, lblWorkTime, lblWeek,
+                lblUserid, lblNickname, lblRank, lblHireDate, btnToggleWork, lblWorkTime, lblWeek,
                 workRankPanel, rpRankPanel, lblWeekTotal, lblRpTotal
             });
 
@@ -248,77 +284,63 @@ namespace Police_Intranet
             workRankPanel.WrapContents = false;
             rpRankPanel.FlowDirection = FlowDirection.TopDown;
             rpRankPanel.WrapContents = false;
-
         }
 
         private void CenterUI()
         {
             int cx = Width / 2;
-            lblNickname.Location = new Point(cx - lblNickname.Width / 2, 60);
-            lblRank.Location = new Point(cx - lblRank.Width / 2, 100);
-            lblHireDate.Location = new Point(cx - lblHireDate.Width / 2, 140);
+            lblUserid.Location = new Point(cx - lblUserid.Width / 2, 60);
+            lblNickname.Location = new Point(cx - lblNickname.Width / 2, 100);
+            lblRank.Location = new Point(cx - lblRank.Width / 2, 140);
             btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 180);
             lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 240);
             lblWeek.Location = new Point(cx - lblWeek.Width / 2, 280);
 
-            int gap = 20; // 두 랭킹 사이 간격
+            int gap = 20;
 
             workRankPanel.Location = new Point(cx - workRankPanel.Width - gap, 360);
             rpRankPanel.Location = new Point(cx + gap, 360);
 
-            lblWeekTotal.Location = new Point(workRankPanel.Left + (workRankPanel.Width - lblWeekTotal.Width) / 2, workRankPanel.Top - lblWeekTotal.Height - 8);  // ← 위 여백 (숫자만 조절)
+            lblWeekTotal.Location = new Point(workRankPanel.Left + (workRankPanel.Width - lblWeekTotal.Width) / 2, workRankPanel.Top - lblWeekTotal.Height - 8);
             lblRpTotal.Location = new Point(rpRankPanel.Left + (rpRankPanel.Width - lblRpTotal.Width) / 2, rpRankPanel.Top - lblRpTotal.Height - 8);
-
         }
 
-        private async Task ToggleWorkAsync()
+        private void UpdateDutyButton(string status)
         {
-            DateTime now = DateTime.UtcNow;
-            string today = GetKstNow().ToString("yyyy-MM-dd");
+            btnToggleWork.Enabled = true;
 
-            if (!isCheckedIn)
+            if (status == "on_duty")
             {
-                isCheckedIn = true;
-                runtimeWorkStart = now;
-                btnToggleWork.Text = "퇴근";
-                btnToggleWork.BackColor = Color.FromArgb(150, 50, 50);
-
-                if (todayWork == null)
-                {
-                    var inserted = await supabase.From<Work>().Insert(new Work
-                    {
-                        UserId = currentUser.Id,
-                        Date = today,
-                        IsWorking = true,
-                        LastWorkStart = now,
-                        TodayTotalSeconds = 0,
-                        WeekTotalSeconds = (long)weekTotal.TotalSeconds,
-                        CheckinTime = now
-                    });
-
-                    todayWork = inserted.Models.First();
-                }
-                else
-                {
-                    await supabase.From<Work>()
-                        .Where(x => x.Id == todayWork.Id)
-                        .Set(x => x.IsWorking, true)
-                        .Set(x => x.LastWorkStart, now)
-                        .Set(x => x.CheckinTime, now)
-                        .Update();
-                }
-
-                await workWebhook?.SendWorkLogAsync(currentUser.Username, true, currentUser, now, null);
+                btnToggleWork.Text = "출근중";
+                btnToggleWork.ForeColor = Color.White;
+                btnToggleWork.BackColor = Color.FromArgb(100, 140, 240);
             }
             else
             {
-                await ForceCheckoutInternalAsync(now);
+                btnToggleWork.Text = "퇴근중";
+                btnToggleWork.ForeColor = Color.White;
+                btnToggleWork.BackColor = Color.FromArgb(150, 50, 50);
             }
-
-            UpdateWorkTimeLabel();
-            await LoadUserRanksAsync();
         }
+        public async Task OnExternalCheckInAsync(bool checkIn, DateTime? workStart = null)
+        {
+            if (checkIn)
+            {
+                isCheckedIn = true;
+                runtimeWorkStart = workStart ?? DateTime.UtcNow;
 
+                UpdateDutyButton("on_duty");
+                UpdateWorkTimeLabel(); // UI 즉시 반영
+
+                _ = UpdateDbAsync(); // 백그라운드 DB 업데이트
+            }
+            else
+            {
+                if (!isCheckedIn) return;
+
+                await ForceCheckoutInternalAsync(DateTime.UtcNow); // UI도 내부에서 업데이트됨
+            }
+        }
         private async Task ForceCheckoutInternalAsync(DateTime utcNow)
         {
             workTimer.Stop();
@@ -339,12 +361,12 @@ namespace Police_Intranet
                 .Set(x => x.CheckoutTime, utcNow)
                 .Update();
 
-            await workWebhook?.SendWorkLogAsync(currentUser.Username, false, currentUser, runtimeWorkStart.Value, utcNow);
+            await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, false, currentUser, runtimeWorkStart.Value, utcNow);
+            await SendDutyLogToServerAsync("off_duty");
 
             runtimeWorkStart = null;
             isCheckedIn = false;
-            btnToggleWork.Text = "출근";
-            btnToggleWork.BackColor = Color.FromArgb(100, 140, 240);
+            UpdateDutyButton("off_duty");
 
             workTimer.Start();
 
@@ -358,7 +380,73 @@ namespace Police_Intranet
                 });
             }
 
+            await LoadTodayWorkAsync();
             await LoadUserRanksAsync();
+        }
+
+        private async Task UpdateDbAsync()
+        {
+            if (todayWork == null)
+            {
+                todayWork = new Work
+                {
+                    UserId = currentUser.Id,
+                    Date = GetKstNow().ToString("yyyy-MM-dd"),
+                    TodayTotalSeconds = 0,
+                    WeekTotalSeconds = (long)weekTotal.TotalSeconds,
+                    IsWorking = isCheckedIn,
+                    LastWorkStart = runtimeWorkStart
+                };
+                await supabase.From<Work>().Insert(todayWork);
+            }
+            else
+            {
+                todayWork.IsWorking = isCheckedIn;
+                todayWork.LastWorkStart = runtimeWorkStart;
+
+                await supabase.From<Work>()
+                    .Where(x => x.Id == todayWork.Id)
+                    .Set(x => x.IsWorking, isCheckedIn)
+                    .Set(x => x.LastWorkStart, runtimeWorkStart)
+                    .Update();
+            }
+        }
+        private async Task SendDutyLogToServerAsync(string status)
+        {
+            try
+            {
+                using var client = new HttpClient();
+
+                client.DefaultRequestHeaders.Add("x-api-key", "duty_webhook_2026_secret_x9a2");
+
+                var body = new
+                {
+                    userid = currentUser.Id,
+                    name = currentUser.Username,
+                    status = status
+                };
+
+                var content = new StringContent(
+                    Newtonsoft.Json.JsonConvert.SerializeObject(body),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                );
+
+                var res = await client.PostAsync(
+                    "https://eeyxcupedhyoatovzepr.supabase.co/functions/v1/duty-webhook",
+                    content
+                );
+
+                if (!res.IsSuccessStatusCode)
+                {
+                    var msg = await res.Content.ReadAsStringAsync();
+                    Console.WriteLine("Duty log 실패: " + msg);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Duty log 예외: " + ex);
+            }
         }
 
         private void UpdateWorkTimeLabel()
@@ -392,15 +480,6 @@ namespace Police_Intranet
             lblWeek.Text = $"주간 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
         }
 
-        private string FormatHireDate(DateTime? createdAt)
-        {
-            if (!createdAt.HasValue)
-                return "알 수 없음";
-
-            DateTime kst = createdAt.Value.ToLocalTime();
-            return kst.ToString("yyyy-MM-dd");
-        }
-
         public async Task ForceCheckoutIfNeededAsync()
         {
             if (isCheckedIn)
@@ -420,7 +499,6 @@ namespace Police_Intranet
             currentUser = user;
             lblNickname.Text = $"닉네임: {currentUser.Username}";
             lblRank.Text = $"직급: {currentUser.Rank}";
-            lblHireDate.Text = $"입사일: {FormatHireDate(currentUser.CreatedAt)}";
             CenterUI();
 
             await LoadTodayWorkAsync();
@@ -464,7 +542,6 @@ namespace Police_Intranet
         {
             try
             {
-                // 🔹 유저 정보
                 var userRes = await supabase.From<User>()
                     .Select("id, username, rp_count, IsApproved")
                     .Get();
@@ -473,43 +550,28 @@ namespace Police_Intranet
                     .Where(u => u.IsApproved == true)
                     .ToList();
 
-                // 🔹 근무 정보
                 var workRes = await supabase.From<Work>()
                     .Select("user_id, week_total_seconds")
                     .Get();
 
                 var works = workRes.Models ?? new List<Work>();
 
-                // =========================
-                // 주간 출근 랭킹
-                // =========================
                 var allWorkRanks = works
                     .GroupBy(w => w.UserId)
-                    .Select(g => g
-                        .OrderByDescending(x => x.WeekTotalSeconds)
-                        .First()
-                    )
+                    .Select(g => g.OrderByDescending(x => x.WeekTotalSeconds).First())
                     .Where(w => w.WeekTotalSeconds > 0)
                     .OrderByDescending(w => w.WeekTotalSeconds)
-                    .Select(w => new
-                    {
-                        UserId = w.UserId,
-                        WeekSeconds = w.WeekTotalSeconds
-                    })
+                    .Select(w => new { UserId = w.UserId, WeekSeconds = w.WeekTotalSeconds })
                     .ToList();
-
 
                 workRankPanel.Controls.Clear();
 
                 if (allWorkRanks.Count == 0)
-                {
                     workRankPanel.Controls.Add(CreateEmptyLabel());
-                }
                 else
                 {
                     int displayCount = Math.Min(10, allWorkRanks.Count);
 
-                    // 상위 10위 표시
                     for (int i = 0; i < displayCount; i++)
                     {
                         var rank = allWorkRanks[i];
@@ -523,7 +585,6 @@ namespace Police_Intranet
                         workRankPanel.Controls.Add(CreateRankItem(i + 1, text, isMe));
                     }
 
-                    // 내 순위 확인 (10위 이하라면 맨 아래에 표시)
                     var me = users.FirstOrDefault(u => u.Id == currentUser.Id);
                     if (me != null)
                     {
@@ -533,17 +594,11 @@ namespace Police_Intranet
                             TimeSpan ts = TimeSpan.FromSeconds(allWorkRanks[myIndex].WeekSeconds);
                             string text = $"{me.Username} {(int)ts.TotalHours}시간 {ts.Minutes:D2}분";
 
-                            workRankPanel.Controls.Add(
-                                CreateRankItem(-(myIndex + 1), text, true, 15) // 👈 여기
-                            );
+                            workRankPanel.Controls.Add(CreateRankItem(-(myIndex + 1), text, true, 15));
                         }
                     }
-
                 }
 
-                // =========================
-                // 주간 RP 랭킹
-                // =========================
                 var allRpRanks = users
                     .Where(u => u.RpCount > 0)
                     .OrderByDescending(u => u.RpCount)
@@ -552,14 +607,11 @@ namespace Police_Intranet
                 rpRankPanel.Controls.Clear();
 
                 if (allRpRanks.Count == 0)
-                {
                     rpRankPanel.Controls.Add(CreateEmptyLabel());
-                }
                 else
                 {
                     int displayCount = Math.Min(10, allRpRanks.Count);
 
-                    // 상위 10위 표시
                     for (int i = 0; i < displayCount; i++)
                     {
                         var u = allRpRanks[i];
@@ -569,7 +621,6 @@ namespace Police_Intranet
                         rpRankPanel.Controls.Add(CreateRankItem(i + 1, text, isMe));
                     }
 
-                    // 내 순위 확인 (10위 이하라면 맨 아래에 표시)
                     int myIndex = allRpRanks.FindIndex(u => u.Id == currentUser.Id);
                     if (myIndex >= 10)
                     {
@@ -594,7 +645,6 @@ namespace Police_Intranet
 
         private Control CreateRankItem(int rank, string text, bool isMe = false, int topMargin = 0)
         {
-            // 🔹 순위 색상
             Color textColor = rank switch
             {
                 1 => Color.Gold,
@@ -603,11 +653,8 @@ namespace Police_Intranet
                 _ => Color.White
             };
 
-            // 🔹 배경색 (내 순위 하이라이트)
             Color backColor = isMe ? Color.FromArgb(60, 60, 90) : Color.Transparent;
 
-            // 🔹 패널 (FlowLayoutPanel 폭에 맞춤)
-            int panelWidth = workRankPanel.ClientSize.Width; // workRankPanel 기준 폭
             var panel = new Panel
             {
                 Width = workRankPanel.ClientSize.Width,
@@ -616,7 +663,6 @@ namespace Police_Intranet
                 BackColor = backColor
             };
 
-            // 🔹 순위 라벨 (왼쪽 고정)
             string rankText = rank > 0 ? $"{rank}위" : $"{Math.Abs(rank)}위";
             var lblRank = new Label
             {
@@ -630,7 +676,6 @@ namespace Police_Intranet
                 AutoSize = false
             };
 
-            // 🔹 내용 라벨 (나머지 공간)
             var lblContent = new Label
             {
                 Text = text,
@@ -639,11 +684,10 @@ namespace Police_Intranet
                 Font = lblRank.Font,
                 AutoSize = false,
                 Location = new Point(lblRank.Right + 5, 0),
-                Width = panel.Width - lblRank.Width - 5, // 패널 폭에서 정확히 계산
+                Width = panel.Width - lblRank.Width - 5,
                 Height = panel.Height
             };
 
-            // 상위 3위 폰트 조절
             if (rank == 1) lblContent.Font = new Font("Segoe UI", 10.5f, FontStyle.Bold);
             if (rank == 2) lblContent.Font = new Font("Segoe UI", 10f, FontStyle.Bold);
             if (rank == 3) lblContent.Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
@@ -653,7 +697,6 @@ namespace Police_Intranet
 
             return panel;
         }
-
 
         private Label CreateEmptyLabel()
         {
@@ -680,6 +723,5 @@ namespace Police_Intranet
                 TextAlign = ContentAlignment.MiddleCenter
             };
         }
-
     }
 }
