@@ -116,6 +116,13 @@ namespace Police_Intranet
 
         private bool _isClosingHandled = false;
 
+        public async Task HandleGameCheckInEvent(int userId, bool checkIn, DateTime? workStart = null)
+        {
+            // 내가 보고 있는 MypageControl의 유저와 매칭
+            if (Mypage.currentUser.Id == userId)
+            {
+            }
+        } 
         private async void Main_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (_isClosingHandled)

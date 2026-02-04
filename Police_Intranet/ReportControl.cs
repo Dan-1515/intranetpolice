@@ -846,7 +846,7 @@ namespace Police_Intranet
                 }
 
                 // ✅ 참여 경관 문자열 (로그용)
-                string participantPolice = string.Join(", ", lbUsers.SelectedItems.Cast<User>().Select(u => u.Username));
+                string participantPolice = string.Join(", ", lbUsers.SelectedItems.Cast<User>().Select(u => $"{u.UserId} {u.Username}"));
                 if (string.IsNullOrWhiteSpace(participantPolice))
                     participantPolice = "없음";
 

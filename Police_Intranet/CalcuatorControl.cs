@@ -11,9 +11,9 @@ namespace Police_Intranet
         private readonly string[][] categoriesTexts = new string[][]
         {
             new string[] { "속도위반", "신호위반", "불법 주정차", "스턴트", "차선위반", "중앙선 침범", "역주행", "불법유턴", "보복운전", "승차 방법 제한", "폭주", "인도주행", "공공기물 파손", "음주운전", "비정상도로 진입", "도로 외 공간 주행", "운전 중 휴대폰 사용" },
-            new string[] { "시민 살인", "살인 미수", "명예훼손", "납치", "감금", "시민 폭행", "시민 폭행(2인 이상)", "시민 폭행\n(불법 무기/물건)", "차량/헬기 절도", "차량/헬기 절도 미수", "재물손괴", "재물손괴 후 도주", "스토킹", "횡령/사기(5억미만)", "횡령/사기(5억이상)", "영업방해", "불법물건 소지", "불법물건 언급", "불법물건 유통", "근접무기 사용", "사유지 침입", "증거인멸", "거짓 진술" },
+            new string[] { "시민 살인", "살인 미수", "명예훼손", "납치", "감금", "시민 폭행", "시민 폭행(2인 이상)", "시민 폭행\n(불법 무기/물건)", "차량/헬기 절도", "차량/헬기 절도 미수", "도난 차량 압류", "재물손괴(일부)", "재물손괴(전체)", "재물손괴 후 도주", "스토킹", "횡령/사기(5억미만)", "횡령/사기(5억이상)", "영업방해", "불법물건 소지", "불법물건 언급", "불법물건 유통", "근접무기 사용", "사유지 무단침입", "증거인멸", "거짓 진술" },
             new string[] { "저공비행", "미허가 헬기 운행" },
-            new string[] { "공무원 살인", "공무원 살인 미수", "공무원 명예훼손", "공무원 폭행", "공무집행 방해", "공무원 지시 불이행", "공무원 지시 불이행\n(3회 이상)", "수갑 미착용 도주", "차량 재탑승 후 도주", "공무원 사칭", "공무원 차량/헬기 절도", "공무원 차량/헬기 절도 미수", "공무원 도난 차량 압류(고의)", "국유지 침입", "공무원 뇌물 수수" },
+            new string[] { "공무원 살인", "공무원 살인 미수", "공무원 명예훼손", "공무원 폭행", "공무집행 방해", "공무원 지시 불이행", "공무원 지시 불이행\n(3회 이상)", "수갑 미착용 도주", "차량 재탑승 도주", "공무원 사칭", "공무원 차량/헬기 절도", "공무원 차량/헬기 절도 미수", "공무원 도난 차량 압류", "국유지 침입", "공무원 뇌물 수수" },
         };
 
         private readonly string[] categoriesNames = new string[]
@@ -403,15 +403,37 @@ namespace Police_Intranet
                     case "운전 중 휴대폰 사용": totalFine += 10_000_000; break;
 
                     // 형사 중범죄
-                    case "시민 살인": break;
-                    case "살인 미수": break;
+                    case "시민 살인": totalFine += 50_000_000; break;
+                    case "살인 미수": totalFine += 30_000_000; break;
+                    case "명예훼손": totalFine += 20_000_000; break;
+                    case "납치": totalFine += 60_000_000; totalDetention += 10; break;
+                    case "감금": totalFine += 90_000_000; totalDetention += 15; break;
+                    case "시민 폭행": totalFine += 20_000_000; totalDetention += 15; break;
+                    case "시민 폭행(2인 이상)": totalFine += 25_000_000; totalDetention += 15; break;
+                    case "시민 폭행\n(불법 무기/물건)": totalFine += 25_000_000; totalDetention += 15; break;
+                    case "차량/헬기 절도": totalFine += 40_000_000; totalDetention += 20; break;
+                    case "차량/헬기 절도 미수": totalFine += 15_000_000; break;
+                    case "도난 차량 압류": totalFine += 25_000_000; totalDetention += 20; break;
+                    case "재물손괴(일부)": totalFine += 15_000_000; break;
+                    case "재물손괴(전체)": totalFine += 30_000_000; break;
+                    case "재물손괴 후 도주": totalFine += 20_000_000; totalDetention += 20; break;
+                    case "스토킹": totalDetention += 10; break;
+                    case "횡령/사기(5억미만)": totalFine += 15_000_000; totalDetention += 10; break;
+                    case "횡령/사기(5억이상)": totalFine += 60_000_000; totalDetention += 20; break;
+                    case "영업방해": totalFine += 30_000_000; totalDetention += 10; break;
+                    case "불법물건 소지": totalFine += 30_000_000; totalDetention += 30; break;
+                    case "불법물건 언급": totalFine += 20_000_000; totalDetention += 15; break;
+                    case "근접무기 사용": totalFine += 20_000_000; totalDetention += 20; break;
+                    case "사유지 무단침입": totalFine += 20_000_000; totalDetention += 10; break;
+                    case "증거인멸": totalFine += 60_000_000; totalDetention += 40; break;
+                    case "거짓 진술": totalFine += 30_000_000; totalDetention += 20; break;
 
                     // 항공법
                     case "저공비행": totalFine += 50_000_000; break;
-                    case "미허가 헬기 운행": totalFine += 60_000_000; break;
+                    case "미허가 헬기 운행": totalFine += 60_000_000; totalDetention += 60; break; //완
 
                     // 공무원법
-                    case "공무원 살인": totalFine += 50_000_000; break;
+                    case "공무원 살인": totalFine += 70_000_000; break;
                 }
             }
 

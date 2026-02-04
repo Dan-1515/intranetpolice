@@ -31,6 +31,7 @@ namespace Police_Intranet
         private Button btnDelete;
         private Button btnForceRelease;
 
+        private TextBox txtUserId;
         private TextBox txtName;
         private TextBox txtRank;
 
@@ -298,8 +299,10 @@ namespace Police_Intranet
             panelUserlist.Controls.Add(lbUsers);
             ApplyHorizontalCenterAlign(lbUsers);
 
+            txtUserId = new TextBox() { Location = new Point(260, 50), Size = new Size(110, 25)};
             txtName = new TextBox() { Location = new Point(260, 90), Size = new Size(110, 25) };
             txtRank = new TextBox() { Location = new Point(260, 130), Size = new Size(110, 25) };
+            panelUserlist.Controls.Add(txtUserId);
             panelUserlist.Controls.Add(txtName);
             panelUserlist.Controls.Add(txtRank);
 
@@ -377,7 +380,7 @@ namespace Police_Intranet
             lbWaiting.Items.Clear();
             var resp = await client.From<User>().Get();
             foreach (var u in resp.Models.Where(u => u.IsApproved == false))
-                lbWaiting.Items.Add($"{u.Username} | {u.Rank}");
+                lbWaiting.Items.Add($"{u.UserId} | {u.Username} | {u.Rank}");
         }
 
         private async void BtnApprove_Click(object sender, EventArgs e)
@@ -433,19 +436,21 @@ namespace Police_Intranet
             lbUsers.Items.Clear();
             var resp = await client.From<User>().Get();
             foreach (var u in resp.Models.Where(u => u.IsApproved == true))
-                lbUsers.Items.Add($"{u.Username} | {u.Rank}");
+                lbUsers.Items.Add($"{u.UserId} | {u.Username} | {u.Rank}");
         }
 
         private async void LbUsers_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (lbUsers.SelectedItem == null) return;
-            var p = lbUsers.SelectedItem.ToString().Split('|');
-            string username = p[0].Trim();
 
-            txtName.Text = username;
-            txtRank.Text = p.Length > 1 ? p[1].Trim() : "";
+            var parts = lbUsers.SelectedItem.ToString().Split('|');
+            if (parts.Length < 3) return;
 
-            await SetSelectedPkAsync(username);
+            txtUserId.Text = parts[0].Trim(); // 고유번호
+            txtName.Text = parts[1].Trim(); // 이름
+            txtRank.Text = parts[2].Trim(); // 직급
+
+            await SetSelectedPkAsync(txtName.Text);
         }
 
         private async Task SetSelectedPkAsync(string username)
@@ -500,6 +505,7 @@ namespace Police_Intranet
             {
                 await client.From<User>().Where(u => u.Id == selectedPk).Delete();
                 selectedPk = -1;
+                txtUserId.Clear();
                 txtName.Clear();
                 txtRank.Clear();
                 await LoadAllDataAsync();
@@ -544,7 +550,7 @@ namespace Police_Intranet
                     TimeSpan t = TimeSpan.FromSeconds(work.WeekTotalSeconds);
 
                     lbTimes.Items.Add(
-                        $"{user.Username} | {(int)t.TotalHours}시간 {t.Minutes}분 {t.Seconds}초"
+                        $"{user.UserId} | {user.Username} | {(int)t.TotalHours}시간 {t.Minutes}분 {t.Seconds}초"
                     );
                 }
             }
@@ -661,7 +667,7 @@ namespace Police_Intranet
                 var resp = await client.From<User>().Where(u => u.IsRiding == true).Get();
                 foreach (var u in resp.Models)
                 {
-                    lbRidingUsers.Items.Add($"{u.Username} | {u.Level} | {u.RP}");
+                    lbRidingUsers.Items.Add($"{u.UserId} | {u.Username} | {u.Level} | {u.RP}");
                 }
             }
             catch (Exception ex)
@@ -711,7 +717,7 @@ namespace Police_Intranet
             foreach (var u in resp.Models.Where(u => u.IsApproved == true))
             {
                 int rp = int.TryParse(u.RP, out var v) ? v : 0;
-                lbRpReset.Items.Add($"{u.Username} | RP {u.RpCount}회");
+                lbRpReset.Items.Add($"{u.UserId} | {u.Username} | RP {u.RpCount}회");
             }
         }
 
