@@ -474,6 +474,7 @@ namespace Police_Intranet
                 var existingUser = response.Models.FirstOrDefault();
                 if (existingUser == null) { MessageBox.Show("선택된 사용자를 찾을 수 없습니다."); return; }
 
+                existingUser.UserId = int.Parse(txtUserId.Text.Trim());
                 existingUser.Username = txtName.Text.Trim();
                 existingUser.Rank = txtRank.Text.Trim();
                 await client.From<User>().Where(u => u.Id == selectedPk).Update(existingUser);

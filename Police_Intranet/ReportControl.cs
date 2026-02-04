@@ -25,6 +25,7 @@ namespace Police_Intranet
         private TextBox txtDetention;
         private TextBox txtBailFine;
         private TextBox txtBailDetention;
+        private TextBox txtPeak;
 
         private ListBox lbUser;
         private ListBox lbUsers;
@@ -662,8 +663,31 @@ namespace Police_Intranet
 
             txtBailDetention = CreateReadonlyTextBox(10, y);
             rightPanel.Controls.Add(txtBailDetention);
-        }
 
+            Label lblPeaks = CreateLabel("감면 할 구금", 10, y + 25);
+            rightPanel.Controls.Add(lblPeaks);
+            y += lblPeaks.Height + 5;
+
+            txtPeak = new TextBox 
+            { 
+                Location = new Point(10, y + 25),
+                Size = new Size(280, 25),
+                BackColor = Color.FromArgb(30, 30, 30),
+                ForeColor = Color.White,
+                Text = ""
+            };
+            rightPanel.Controls.Add(txtPeak);
+
+            txtPeak.KeyPress += (s, e) =>
+            {
+                if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+                    e.Handled = true;
+            };
+            txtPeak.TextChanged += (s, e) =>
+            {
+                UpdateFineAndDetention();  // 수 바뀌면 자동 계산
+            };
+        }
 
         private TextBox CreateReadonlyTextBox(int x, int y)
         {
@@ -733,7 +757,13 @@ namespace Police_Intranet
             long totalFine = 0;
             int totalDetention = 0;
             long totalBailFine = 0;
-            int totalBailDetention = 10;
+            int totalBailDetention = 0;
+            long Bail = 500_000L;
+
+            int Peak = 0;
+            int.TryParse(txtPeak.Text.Trim(), out Peak);
+            if (Peak < 0)
+                Peak = 0;
 
             int participantCount = 1;
             if (!int.TryParse(txtPerson.Text.Trim(), out participantCount) || participantCount < 1)
@@ -744,54 +774,66 @@ namespace Police_Intranet
                 switch (crime)
                 {
                     case "ATM":
-                        totalFine = 100_000_000L * participantCount;
-                        totalDetention = 0;
-                        totalBailFine = 100_000_000L * participantCount;
-                        totalBailDetention = 0;
+                        totalFine = 100_000_000L;
+                        totalDetention = 10;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "편의점":
-                        totalFine = 100_000_000L * participantCount;
-                        totalDetention = 0;
-                        totalBailFine = 100_000_000L * participantCount;
-                        totalBailDetention = 0;
+                        totalFine = 100_000_000L;
+                        totalDetention = 15;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "남부빈집":
-                        totalFine = 50_000_000L * participantCount;
-                        totalDetention = 0;
-                        totalBailFine = 50_000_000L * participantCount;
-                        totalBailDetention = 0;
+                        totalFine = 100_000_000L;
+                        totalDetention = 15;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "보석상":
-                        totalFine = 700_000_000L;
-                        totalDetention = 10;
-                        totalBailFine = 700_000_000L;
+                        totalFine = 150_000_000L;
+                        totalDetention = 20;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "남부은행":
-                        totalFine = 1_400_000_000L;
-                        totalDetention = 10;
-                        totalBailFine = 1_400_000_000L;
+                        totalFine = 150_000_000L;
+                        totalDetention = 30;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "수배":
-                        totalFine = 200_000_000L * participantCount;
-                        totalDetention = 20;
-                        totalBailFine = (200_000_000L + 50_000_000L) * participantCount;
+                        totalFine = 300_000_000L;
+                        totalDetention = 30;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "즉흥":
-                        totalFine = 200_000_000L * participantCount;
-                        totalDetention = 25;
-                        totalBailFine = (200_000_000L + 55_000_000L) * participantCount;
+                        totalFine = 200_000_000L;
+                        totalDetention = 30;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "영장":
-                        totalFine = 300_000_000L * participantCount;
+                        totalFine = 200_000_000L;
                         totalDetention = 30;
-                        totalBailFine = (400_000_000L + 500_000_000L) * participantCount;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
+                        break;
+
+                    case "경털1차":
+                        totalFine = 200_000_000L;
+                        totalDetention = 30;
+                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailDetention = totalDetention - Peak;
                         break;
                 }
             }

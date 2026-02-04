@@ -12,6 +12,7 @@ namespace Police_Intranet
 {
     public partial class MypageControl : UserControl
     {
+        private Label lblUserid;
         private Label lblNickname;
         private Label lblRank;
         private Button btnToggleWork;
@@ -45,7 +46,7 @@ namespace Police_Intranet
         private readonly string supabaseUrl = "https://eeyxcupedhyoatovzepr.supabase.co";
         private readonly string supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVleXhjdXBlZGh5b2F0b3Z6ZXByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2NDAzNjEsImV4cCI6MjA3OTIxNjM2MX0.jQKzE_ZO1t8x8heY0mqs0pttsb7R06KIGcDVOihwg-k";
 
-        public MypageControl(User user, Client client)
+        public MypageControl(Police_Intranet.Models.User user, Client client)
         {
             currentUser = user;
             workWebhook = new DiscordWebhook(WebhookUrls.WorkLog);
@@ -138,6 +139,14 @@ namespace Police_Intranet
             Dock = DockStyle.Fill;
             BackColor = Color.FromArgb(30, 30, 30);
 
+            lblUserid = new Label
+            {
+                Text = $"고유번호: {currentUser.UserId}",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                AutoSize = true
+            };
+
             lblNickname = new Label
             {
                 Text = $"닉네임: {currentUser.Username}",
@@ -149,14 +158,6 @@ namespace Police_Intranet
             lblRank = new Label
             {
                 Text = $"직급: {currentUser.Rank}",
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 13, FontStyle.Bold),
-                AutoSize = true
-            };
-
-            lblHireDate = new Label
-            {
-                Text = $"입사일: {FormatHireDate(currentUser.CreatedAt)}",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 13, FontStyle.Bold),
                 AutoSize = true
@@ -227,7 +228,7 @@ namespace Police_Intranet
 
             Controls.AddRange(new Control[]
             {
-                lblNickname, lblRank, lblHireDate, btnToggleWork, lblWorkTime, lblWeek,
+                lblUserid, lblNickname, lblRank, lblHireDate, btnToggleWork, lblWorkTime, lblWeek,
                 workRankPanel, rpRankPanel, lblWeekTotal, lblRpTotal
             });
 
@@ -254,9 +255,9 @@ namespace Police_Intranet
         private void CenterUI()
         {
             int cx = Width / 2;
-            lblNickname.Location = new Point(cx - lblNickname.Width / 2, 60);
-            lblRank.Location = new Point(cx - lblRank.Width / 2, 100);
-            lblHireDate.Location = new Point(cx - lblHireDate.Width / 2, 140);
+            lblUserid.Location = new Point(cx - lblUserid.Width / 2, 60);
+            lblNickname.Location = new Point(cx - lblNickname.Width / 2, 100);
+            lblRank.Location = new Point(cx - lblRank.Width / 2, 140);
             btnToggleWork.Location = new Point(cx - btnToggleWork.Width / 2, 180);
             lblWorkTime.Location = new Point(cx - lblWorkTime.Width / 2, 240);
             lblWeek.Location = new Point(cx - lblWeek.Width / 2, 280);
@@ -392,15 +393,6 @@ namespace Police_Intranet
             lblWeek.Text = $"주간 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
         }
 
-        private string FormatHireDate(DateTime? createdAt)
-        {
-            if (!createdAt.HasValue)
-                return "알 수 없음";
-
-            DateTime kst = createdAt.Value.ToLocalTime();
-            return kst.ToString("yyyy-MM-dd");
-        }
-
         public async Task ForceCheckoutIfNeededAsync()
         {
             if (isCheckedIn)
@@ -418,9 +410,9 @@ namespace Police_Intranet
             workTimer.Stop();
 
             currentUser = user;
+            lblUserid.Text = $"고유번호: {currentUser.UserId}";
             lblNickname.Text = $"닉네임: {currentUser.Username}";
             lblRank.Text = $"직급: {currentUser.Rank}";
-            lblHireDate.Text = $"입사일: {FormatHireDate(currentUser.CreatedAt)}";
             CenterUI();
 
             await LoadTodayWorkAsync();
@@ -653,7 +645,6 @@ namespace Police_Intranet
 
             return panel;
         }
-
 
         private Label CreateEmptyLabel()
         {
