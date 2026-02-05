@@ -11,6 +11,7 @@ namespace Police_Intranet
     {
         public Signup()
         {
+            this.Icon = Properties.Resource1.policeicon;
             InitializeComponent();
 
             this.FormBorderStyle = FormBorderStyle.FixedSingle;

@@ -63,9 +63,9 @@ namespace Police_Intranet.Properties {
         /// <summary>
         ///   (아이콘)과(와) 유사한 System.Drawing.Icon 형식의 지역화된 리소스를 찾습니다.
         /// </summary>
-        public static System.Drawing.Icon police {
+        public static System.Drawing.Icon policeicon {
             get {
-                object obj = ResourceManager.GetObject("police", resourceCulture);
+                object obj = ResourceManager.GetObject("policeicon", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
@@ -73,9 +73,9 @@ namespace Police_Intranet.Properties {
         /// <summary>
         ///   System.Drawing.Bitmap 형식의 지역화된 리소스를 찾습니다.
         /// </summary>
-        public static System.Drawing.Bitmap policee {
+        public static System.Drawing.Bitmap police {
             get {
-                object obj = ResourceManager.GetObject("policee", resourceCulture);
+                object obj = ResourceManager.GetObject("police", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

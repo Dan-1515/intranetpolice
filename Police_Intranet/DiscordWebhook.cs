@@ -87,7 +87,7 @@ namespace Police_Intranet.Services
             int color = isCheckedIn ? 0x00FF00 : 0xFF0000;
 
             // ❤️ 디스코드 로고 URL
-            string logoUrl = "https://cdn.discordapp.com/attachments/1427149493123420290/1441946603467571380/ver.png";
+            string logoUrl = "https://media.discordapp.net/attachments/1441514593254903858/1468850227665436812/police.png";
 
             await SendEmbedAsync("경찰청 출퇴근 로그", description, color, footer, logoUrl);
         }

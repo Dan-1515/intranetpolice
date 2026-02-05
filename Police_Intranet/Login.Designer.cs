@@ -56,7 +56,7 @@ namespace Police_Intranet
             // 
             // picLogo
             // 
-            picLogo.Image = Properties.Resource1.policee; // 리소스 로고 이미지
+            picLogo.Image = Properties.Resource1.police; // 리소스 로고 이미지
             picLogo.Location = new Point(200, 80);
             picLogo.Name = "picLogo";
             picLogo.Size = new Size(390, 90);
@@ -152,7 +152,6 @@ namespace Police_Intranet
             BackColor = Color.FromArgb(45, 45, 45);
             ClientSize = new Size(800, 450);
             Controls.Add(pnlContainer);
-            Icon = (Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "Login";

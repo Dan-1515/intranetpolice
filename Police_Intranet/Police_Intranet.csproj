@@ -8,7 +8,6 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 
 		<StartupObject>Police_Intranet.Program</StartupObject>
-		<ApplicationIcon>Properties\Resources\police_multi.ico</ApplicationIcon>
 		<SignAssembly>false</SignAssembly>
 
 		<Version>1.0.1</Version>
@@ -27,7 +26,12 @@
 
 		<PublishTrimmed>false</PublishTrimmed>
 		<PublishReadyToRun>false</PublishReadyToRun>
+		<ApplicationIcon>Properties\Resources\policeicon.ico</ApplicationIcon>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Include="Properties\Resources\policeicon.ico" />
+	</ItemGroup>
 
 	<!-- 중복된 EmbeddedResource 제거 -->
 

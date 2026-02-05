@@ -17,6 +17,7 @@ namespace Police_Intranet
 
         public Login()
         {
+            this.Icon = Properties.Resource1.policeicon;
             InitializeComponent();
 
             if (TempWindowPosition.LastLocation.HasValue)

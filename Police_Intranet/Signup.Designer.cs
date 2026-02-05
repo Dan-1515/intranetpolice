@@ -51,7 +51,7 @@ namespace Police_Intranet
             // 
             // picLogo
             // 
-            picLogo.Image = Properties.Resource1.policee;
+            picLogo.Image = Properties.Resource1.police;
             picLogo.Location = new Point(200, 80);
             picLogo.Name = "picLogo";
             picLogo.Size = new Size(390, 90);
@@ -127,7 +127,6 @@ namespace Police_Intranet
             ClientSize = new Size(800, 450);
             Controls.Add(picLogo);
             Controls.Add(pnlContainer);
-            Icon = (Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "Signup";

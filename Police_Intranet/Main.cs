@@ -43,7 +43,7 @@ namespace Police_Intranet
             _currentUser = loggedInUser ?? throw new ArgumentNullException(nameof(loggedInUser));
             _client = client ?? throw new ArgumentNullException(nameof(client));
             reportWebhook = new DiscordWebhook(WebhookUrls.ReportLog);
-            this.Icon = Properties.Resource1.police;
+            this.Icon = Properties.Resource1.policeicon;
 
             // ⭐ 웹훅은 여기서 안 만듦
             Mypage = new MypageControl(_currentUser, _client);
