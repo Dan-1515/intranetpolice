@@ -26,11 +26,11 @@
 
 		<PublishTrimmed>false</PublishTrimmed>
 		<PublishReadyToRun>false</PublishReadyToRun>
-		<ApplicationIcon>Properties\Resources\policeicon.ico</ApplicationIcon>
+		<ApplicationIcon>Properties\Resources\cheeseicon.ico</ApplicationIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Content Include="Properties\Resources\policeicon.ico" />
+	  <Content Include="Properties\Resources\cheeseicon.ico" />
 	</ItemGroup>
 
 	<!-- 중복된 EmbeddedResource 제거 -->

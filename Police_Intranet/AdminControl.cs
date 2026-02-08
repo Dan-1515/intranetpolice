@@ -339,11 +339,25 @@ namespace Police_Intranet
                     MessageBox.Show("초기화할 유저를 선택하세요.");
                     return;
                 }
-                string username = lbTimes.SelectedItem.ToString().Split('|')[0].Trim();
-                var users = await client.From<User>().Where(u => u.Username == username).Get();
+
+                var parts = lbTimes.SelectedItem.ToString().Split('|');
+
+                int userNumber = int.Parse(parts[0].Trim());   // ✅ UserId(고유번호)
+                string username = parts[1].Trim();             // ✅ Username
+
+                var users = await client
+                    .From<User>()
+                    .Where(u => u.UserId == userNumber)         // ✅ UserId 기준
+                    .Get();
+
                 var user = users.Models.FirstOrDefault();
-                if (user != null)
-                    await ResetSelectedUserWeekTimeAsync(user.Id, user.Username);
+                if (user == null)
+                {
+                    MessageBox.Show("유저를 찾을 수 없습니다.");
+                    return;
+                }
+
+                await ResetSelectedUserWeekTimeAsync(user.Id, user.Username); // ✅ PK 전달
             };
             panelWeekTime.Controls.Add(btnResetSelectedWeek);
 
@@ -385,19 +399,39 @@ namespace Police_Intranet
 
         private async void BtnApprove_Click(object sender, EventArgs e)
         {
-            if (lbWaiting.SelectedItem == null) { MessageBox.Show("승인할 유저를 선택하세요."); return; }
+            if (lbWaiting.SelectedItem == null)
+            {
+                MessageBox.Show("승인할 유저를 선택하세요.");
+                return;
+            }
 
-            string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
-            if (MessageBox.Show($"[ {selectedUsername} ] 님의 가입을 승인하시겠습니까?", "가입 승인 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            var parts = lbWaiting.SelectedItem.ToString().Split('|');
+            string selectedUsername = parts[1].Trim(); // ✅ Username
+
+            if (MessageBox.Show(
+                $"[ {selectedUsername} ] 님의 가입을 승인하시겠습니까?",
+                "가입 승인 확인",
+                MessageBoxButtons.YesNo) != DialogResult.Yes)
+                return;
 
             try
             {
-                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
+                var users = await client.From<User>()
+                    .Where(u => u.Username == selectedUsername)
+                    .Get();
+
                 var existingUser = users.Models.FirstOrDefault();
-                if (existingUser == null) { MessageBox.Show("선택된 유저를 찾을 수 없습니다."); return; }
+                if (existingUser == null)
+                {
+                    MessageBox.Show("선택된 유저를 찾을 수 없습니다.");
+                    return;
+                }
 
                 existingUser.IsApproved = true;
-                await client.From<User>().Where(u => u.Username == selectedUsername).Update(existingUser);
+
+                await client.From<User>()
+                    .Where(u => u.Id == existingUser.Id) // ✅ PK 기준
+                    .Update(existingUser);
 
                 MessageBox.Show("승인이 완료되었습니다.");
                 await LoadAllDataAsync();
@@ -410,18 +444,38 @@ namespace Police_Intranet
 
         private async Task BtnReject_ClickAsync()
         {
-            if (lbWaiting.SelectedItem == null) { MessageBox.Show("거부할 유저를 선택하세요."); return; }
+            if (lbWaiting.SelectedItem == null)
+            {
+                MessageBox.Show("거부할 유저를 선택하세요.");
+                return;
+            }
 
-            string selectedUsername = lbWaiting.SelectedItem.ToString().Split('|')[0].Trim();
-            if (MessageBox.Show($"[ {selectedUsername} ] 님의 가입을 거부하시겠습니까?", "가입 거부 확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            var parts = lbWaiting.SelectedItem.ToString().Split('|');
+            string selectedUsername = parts[1].Trim(); // ✅ Username
+
+            if (MessageBox.Show(
+                $"[ {selectedUsername} ] 님의 가입을 거부하시겠습니까?",
+                "가입 거부 확인",
+                MessageBoxButtons.YesNo) != DialogResult.Yes)
+                return;
 
             try
             {
-                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
-                var existingUser = users.Models.FirstOrDefault();
-                if (existingUser == null) { MessageBox.Show("선택된 사용자를 찾을 수 없습니다."); return; }
+                var users = await client.From<User>()
+                    .Where(u => u.Username == selectedUsername)
+                    .Get();
 
-                await client.From<User>().Where(u => u.Id == existingUser.Id).Delete();
+                var existingUser = users.Models.FirstOrDefault();
+                if (existingUser == null)
+                {
+                    MessageBox.Show("선택된 사용자를 찾을 수 없습니다.");
+                    return;
+                }
+
+                await client.From<User>()
+                    .Where(u => u.Id == existingUser.Id) // ✅ PK 기준
+                    .Delete();
+
                 MessageBox.Show("가입이 거부되었습니다.");
                 await LoadAllDataAsync();
             }
@@ -482,6 +536,8 @@ namespace Police_Intranet
                 await LoadAllUsersAsync();
                 await LoadWeekTimesAsync();
                 await LoadRidingUsersAsync();
+                await LoadRpUsersAsync();
+                await main.Mypage.LoadUserRanksAsync();
 
                 if (mypageControl != null && mypageControl.currentUser.Id == existingUser.Id)
                     mypageControl.UpdateUserAsync(existingUser);
@@ -561,7 +617,6 @@ namespace Police_Intranet
             }
         }
 
-
         private async Task ResetWeekTimeAsync()
         {
             var result = MessageBox.Show(
@@ -603,7 +658,7 @@ namespace Police_Intranet
         }
 
         // ─ 수정된 선택 유저 주간 초기화 ─
-        private async Task ResetSelectedUserWeekTimeAsync(int userId, string username)
+        private async Task ResetSelectedUserWeekTimeAsync(int userPkId, string username)
         {
             var result = MessageBox.Show(
                 $"[ {username} ] 유저의 주간 근무시간을 초기화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.",
@@ -617,30 +672,36 @@ namespace Police_Intranet
 
             try
             {
+                // 1️⃣ 해당 유저의 work 전부 조회
                 var resp = await client
                     .From<Work>()
-                    .Where(w => w.UserId == userId)
+                    .Where(w => w.UserId == userPkId)   // ✅ FK = users.id
                     .Get();
 
-                var work = resp.Models.FirstOrDefault();
-                if (work == null)
+                if (!resp.Models.Any())
                 {
                     MessageBox.Show("근무 데이터가 존재하지 않습니다.");
                     return;
                 }
 
-                work.WeekTotalSeconds = 0;
+                // 2️⃣ PK(id) 기준으로 하나씩 Update (이게 제일 안전)
+                foreach (var work in resp.Models)
+                {
+                    work.WeekTotalSeconds = 0;
 
-                await client
-                    .From<Work>()
-                    .Where(w => w.UserId == userId)
-                    .Update(work);
+                    await client
+                        .From<Work>()
+                        .Where(w => w.Id == work.Id)   // ✅ work PK
+                        .Update(work);
+                }
 
                 await LoadWeekTimesAsync();
-                await main.Mypage.LoadUserRanksAsync();
 
                 if (main?.Mypage != null)
+                {
+                    await main.Mypage.LoadUserRanksAsync();
                     await main.Mypage.ForceReloadFromDbAsync();
+                }
 
                 MessageBox.Show(
                     $"[ {username} ] 유저의 주간 근무 시간이 초기화되었습니다.",
@@ -652,13 +713,14 @@ namespace Police_Intranet
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "선택 유저 주간 초기화 실패: " + ex.Message,
+                    "주간 근무시간 초기화 실패:\n" + ex.Message,
                     "오류",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );
             }
         }
+
 
         private async Task LoadRidingUsersAsync()
         {
@@ -685,30 +747,49 @@ namespace Police_Intranet
                 return;
             }
 
-            string selectedUsername = lbRidingUsers.SelectedItem.ToString().Split('|')[0].Trim();
+            var parts = lbRidingUsers.SelectedItem.ToString().Split('|');
 
-            if (MessageBox.Show($"[ {selectedUsername} ] 님의 탑승 상태를 강제 해제하시겠습니까?", "확인", MessageBoxButtons.YesNo) != DialogResult.Yes) return;
+            int userId = int.Parse(parts[0].Trim());     // ✅ UserId
+            string username = parts[1].Trim();           // 메시지용
+
+            if (MessageBox.Show(
+                $"[ {username} ] 님의 탑승 상태를 강제 해제하시겠습니까?",
+                "확인",
+                MessageBoxButtons.YesNo) != DialogResult.Yes)
+                return;
 
             try
             {
-                var users = await client.From<User>().Where(u => u.Username == selectedUsername).Get();
+                var users = await client
+                    .From<User>()
+                    .Where(u => u.UserId == userId)       // ✅ UserId 기준 조회
+                    .Get();
+
                 var user = users.Models.FirstOrDefault();
-                if (user != null)
+                if (user == null)
                 {
-                    user.IsRiding = false;
-                    await client.From<User>().Where(u => u.Id == user.Id).Update(user);
-
-                    await LoadRidingUsersAsync();
-                    await LoadAllUsersAsync();
-
-                    MessageBox.Show("해제가 완료되었습니다.");
+                    MessageBox.Show("선택된 유저를 찾을 수 없습니다.");
+                    return;
                 }
+
+                user.IsRiding = false;
+
+                await client
+                    .From<User>()
+                    .Where(u => u.Id == user.Id)           // ✅ PK(id) 기준 Update
+                    .Update(user);
+
+                await LoadRidingUsersAsync();
+                await LoadAllUsersAsync();
+
+                MessageBox.Show("해제가 완료되었습니다.");
             }
             catch (Exception ex)
             {
                 MessageBox.Show("강제 해제 중 오류: " + ex.Message);
             }
         }
+
         private async Task LoadRpUsersAsync()
         {
             lbRpReset.Items.Clear();
@@ -730,33 +811,49 @@ namespace Police_Intranet
                 return;
             }
 
-            string username = lb.SelectedItem.ToString().Split('|')[0].Trim();
+            var parts = lb.SelectedItem.ToString().Split('|');
 
-            if (MessageBox.Show($"[ {username} ] 유저의 RP 횟수를 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+            int userId = int.Parse(parts[0].Trim());   // ✅ UserId
+            string username = parts[1].Trim();         // 메시지용
+
+            if (MessageBox.Show(
+                $"[ {username} ] 유저의 RP 횟수를 초기화하시겠습니까?",
+                "확인",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            var usersResp = await client.From<User>()
-                                        .Where(u => u.Username == username)
-                                        .Get();
-
-            var user = usersResp.Models.FirstOrDefault();
-            if (user != null)
+            try
             {
-                // RP 초기화
+                var usersResp = await client
+                    .From<User>()
+                    .Where(u => u.UserId == userId)     // ✅ UserId 기준 조회
+                    .Get();
+
+                var user = usersResp.Models.FirstOrDefault();
+                if (user == null)
+                {
+                    MessageBox.Show("선택된 유저를 찾을 수 없습니다.");
+                    return;
+                }
+
                 user.RpCount = 0;
 
-                // Where 람다를 int 비교로 안전하게
-                await client.From<User>()
-                            .Where(u => u.Id == user.Id)
-                            .Update(user);
+                await client
+                    .From<User>()
+                    .Where(u => u.Id == user.Id)        // ✅ PK(id) 기준 Update
+                    .Update(user);
 
-                // 리스트 갱신wlrm
                 await LoadRpUsersAsync();
                 await LoadAllUsersAsync();
                 await LoadRidingUsersAsync();
                 await main.Mypage.LoadUserRanksAsync();
 
                 MessageBox.Show($"[ {username} ] 유저의 RP 횟수가 초기화되었습니다.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("RP 초기화 중 오류: " + ex.Message);
             }
         }
 

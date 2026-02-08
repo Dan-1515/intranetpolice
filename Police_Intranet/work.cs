@@ -33,5 +33,11 @@ namespace Police_Intranet.Models
 
         [Column("checkout_time")]
         public DateTime? CheckoutTime { get; set; }
+
+        public override string ToString()
+        {
+            return UserId.ToString();
+        }
+
     }
 }
