@@ -33,10 +33,6 @@ namespace Police_Intranet.Models
         [JsonProperty("created_at")]
         public DateTime? CreatedAt { get; set; }
 
-        // --- 아래 필드들은 'work' 테이블로 기능이 이관되었지만, 
-        // --- users 테이블에도 컬럼이 남아있다면 에러 방지를 위해 둡니다.
-        // --- 만약 users 테이블에 이 컬럼들이 없다면 주석 처리해야 에러가 안 납니다.
-
         [Column("checkin_time")]
         [JsonProperty("checkin_time")]
         public DateTime? CheckInTime { get; set; }
@@ -45,9 +41,9 @@ namespace Police_Intranet.Models
         [JsonProperty("checkout_time")]
         public DateTime? CheckOutTime { get; set; }
 
-        [Column("isworking")] // DB 컬럼명이 isworking (소문자)인지 확인 필요
+        [Column("isworking")]
         [JsonProperty("isworking")]
-        public bool? IsWorking { get; set; }
+        public bool IsWorking { get; set; }
 
         [Column("today_total_seconds")]
         [JsonProperty("today_total_seconds")]

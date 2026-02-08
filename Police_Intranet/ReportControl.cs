@@ -54,7 +54,7 @@ namespace Police_Intranet
 
         private System.Windows.Forms.Timer rideTimer;
         // private System.Windows.Forms.Timer workinguserTimer;
-        
+
 
         public ReportControl(Main main, User currentUser, MypageControl mypage, DiscordWebhook Webhook)
         {
@@ -670,8 +670,8 @@ namespace Police_Intranet
             rightPanel.Controls.Add(lblPeaks);
             y += lblPeaks.Height + 5;
 
-            txtPeak = new TextBox 
-            { 
+            txtPeak = new TextBox
+            {
                 Location = new Point(10, y + 25),
                 Size = new Size(280, 25),
                 BackColor = Color.FromArgb(30, 30, 30),
@@ -778,7 +778,7 @@ namespace Police_Intranet
                     case "ATM":
                         totalFine = 100_000_000L * participantCount;
                         totalDetention = 10;
-                        totalBailFine =  (100_000_000L + (Peak * Bail)) * participantCount;
+                        totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
@@ -873,7 +873,7 @@ namespace Police_Intranet
         {
             lbUsers.Items.Clear();
 
-            foreach (var user in users)
+            foreach (var user in users.OrderBy(u => u.UserId))
             {
                 lbUsers.Items.Add(user);
             }

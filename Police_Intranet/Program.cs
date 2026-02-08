@@ -74,7 +74,7 @@ namespace Police_Intranet
                         }
 
                         // 메인폼 실행
-                            Application.Run(new Main(loginForm.LoggedInUser, client));
+                                Application.Run(new Main(loginForm.LoggedInUser, client));
                         return;
                     }
                 }
@@ -82,3 +82,4 @@ namespace Police_Intranet
         }
     }
 }
+
