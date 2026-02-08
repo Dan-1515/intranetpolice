@@ -778,63 +778,63 @@ namespace Police_Intranet
                     case "ATM":
                         totalFine = 100_000_000L * participantCount;
                         totalDetention = 10;
-                        totalBailFine = totalFine + (Peak * Bail * participantCount);
+                        totalBailFine =  (100_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "편의점":
                         totalFine = 100_000_000L * participantCount;
                         totalDetention = 15;
-                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "남부빈집":
                         totalFine = 100_000_000L * participantCount;
                         totalDetention = 15;
-                        totalBailFine = totalFine + (Peak * Bail);
+                        totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "보석상":
                         totalFine = 150_000_000L * participantCount;
                         totalDetention = 20;
-                        totalBailFine = (totalFine + (Peak * Bail)) * participantCount;
+                        totalBailFine = (150_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "남부은행":
                         totalFine = 150_000_000L * participantCount;
                         totalDetention = 30;
-                        totalBailFine = (totalFine + (Peak * Bail)) * participantCount;
+                        totalBailFine = (150_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "수배":
                         totalFine = 300_000_000L * participantCount;
                         totalDetention = 30;
-                        totalBailFine = (totalFine + (Peak * Bail)) * participantCount;
+                        totalBailFine = (300_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "즉흥":
                         totalFine = 200_000_000L * participantCount;
                         totalDetention = 30;
-                        totalBailFine = (totalFine + (Peak * Bail)) * participantCount;
+                        totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "영장":
                         totalFine = 200_000_000L * participantCount;
                         totalDetention = 30;
-                        totalBailFine = (totalFine + (Peak * Bail)) * participantCount;
+                        totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
 
                     case "경털1차":
                         totalFine = 200_000_000L * participantCount;
                         totalDetention = 30;
-                        totalBailFine = (totalFine + (Peak * Bail)) * participantCount;
+                        totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
                         totalBailDetention = totalDetention - Peak;
                         break;
                 }
@@ -958,11 +958,58 @@ namespace Police_Intranet
                 MessageBox.Show("보고서 작성 실패\n" + ex.Message);
             }
         }
-
-        public void RefreshWorkingUsers()
+        private async Task LoadWorkingUsersAsync()
         {
-            lbUsers.Items.Clear();
+            try
+            {
+                // 1️⃣ work에서 근무중인 user_id 가져오기
+                var workRes = await SupabaseClient.Instance
+                    .From<Work>()
+                    .Filter("is_working", Supabase.Postgrest.Constants.Operator.Equals, true)
+                    .Get();
+
+                var userIds = workRes.Models
+                    .Select(w => w.UserId)
+                    .Distinct()
+                    .ToList();
+
+                if (userIds.Count == 0)
+                {
+                    lbUsers.Items.Clear();
+                    return;
+                }
+
+                // 2️⃣ users에서 해당 유저들만 조회
+                var users = new List<User>();
+
+                foreach (var id in userIds)
+                {
+                    var res = await SupabaseClient.Instance
+                        .From<User>()
+                        .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, id)
+                        .Get();
+
+                    if (res.Models != null)
+                        users.AddRange(res.Models);
+                }
+
+
+                if (lbUsers.InvokeRequired)
+                    lbUsers.Invoke(() => UpdateLbUsers(users));
+                else
+                    UpdateLbUsers(users);
+            }
+            catch
+            {
+                // 타이머용 → 조용히 무시
+            }
         }
+
+        public async void RefreshWorkingUsers()
+        {
+            await LoadWorkingUsersAsync();
+        }
+
         public event Action OnRpUpdated;
 
         private void ApplyHorizontalCenterAlign(ListBox lb)
