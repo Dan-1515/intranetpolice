@@ -172,7 +172,7 @@ namespace Police_Intranet
             // 뉴비 체크박스
             chkNewbie = new CheckBox
             {
-                Text = "뉴비",
+                Text = "피크",
                 Font = new Font("Segoe UI", 10F, FontStyle.Regular),
                 ForeColor = Color.White,
                 Location = new Point(lblSelectedTitle.Width + 145, 15),
@@ -180,7 +180,7 @@ namespace Police_Intranet
                 Checked = false,
                 BackColor = Color.Transparent
             };
-            // rightPanel.Controls.Add(chkNewbie);
+            rightPanel.Controls.Add(chkNewbie);
             chkNewbie.CheckedChanged += (s, e) =>
             {
                 UpdateFineAndDetention(); // 상태가 바뀌면 다시 계산
@@ -367,9 +367,6 @@ namespace Police_Intranet
         {
             string result = string.Join(", ", selectedCrimes);
 
-            if (chkNewbie.Checked && selectedCrimes.Count > 0)
-                result += " (뉴비감면)";
-
             txtSelectedCrimes.Text = result;
         }
 
@@ -379,7 +376,13 @@ namespace Police_Intranet
             long totalFine = 0;
             long totalBailFine = 0;
             int totalDetention = 0;
-            int totalBailDetention = 10;
+
+            const int MAX_DETENTION = 150;
+            const int BAIL_PER_MINUTE = 500_000;
+
+            bool isPeak = chkNewbie.Checked;      // 피크 체크
+            int bailDetentionBase = isPeak ? 5 : 10;
+            int BailPerMinute = 500_000;
 
             foreach (var crime in selectedCrimes)
             {
@@ -455,13 +458,25 @@ namespace Police_Intranet
                 }
             }
 
+            if (totalDetention > MAX_DETENTION)
+                totalDetention = MAX_DETENTION;
+
+            // =========================
+            // 🔥 보석금 핵심 로직
+            // =========================
+            if (totalDetention > bailDetentionBase)
+            {
+                int reducedMinutes = totalDetention - bailDetentionBase;
+                totalBailFine += reducedMinutes * BAIL_PER_MINUTE;
+            }
+
             // 벌금은 원화 3자리 콤마 포맷 + "원"
             txtFine.Text = totalFine.ToString("N0") + "원";
             txtBailFine.Text = totalBailFine.ToString("N0") + "원";
 
             // 구금 분 단위 표시
             txtDetention.Text = totalDetention.ToString() + "분";
-            txtBailDetention.Text = totalBailDetention.ToString() + "분";
+            txtBailDetention.Text = bailDetentionBase.ToString() + "분";
 
         }
 
