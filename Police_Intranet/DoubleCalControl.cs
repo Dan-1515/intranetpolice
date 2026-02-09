@@ -95,7 +95,7 @@ namespace Police_Intranet
             int buttonWidth = 130;
             int buttonHeight = 40;
             int buttonMargin = 4;
-            int buttonsPerRow = 5;
+            int buttonsPerRow = 4;
 
             for (int catIndex = 0; catIndex < categoriesNames.Length; catIndex++)
             {
@@ -174,7 +174,7 @@ namespace Police_Intranet
 
             chkPeak = new CheckBox
             {
-                Text = "피크 타임",
+                Text = "피크",
                 ForeColor = Color.White,
                 Location = new Point(10, startY + 215),
                 AutoSize = true
