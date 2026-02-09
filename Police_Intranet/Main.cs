@@ -26,6 +26,8 @@ namespace Police_Intranet
 
         public CalculatorControl Cal { get; private set; }
 
+        public DoubleCalControl DoubleCal { get; private set; }
+
         public AdminControl Admin { get; private set; }
 
         private Label lblVersion;
@@ -48,6 +50,7 @@ namespace Police_Intranet
             // ⭐ 웹훅은 여기서 안 만듦
             Mypage = new MypageControl(_currentUser, _client);
             Report = new ReportControl(this, _currentUser, Mypage, reportWebhook);
+            DoubleCal = new DoubleCalControl();
             Cal = new CalculatorControl();
             SideNotice = new SideNoticeControl();
             Admin = new AdminControl(_client, this, Mypage);
@@ -158,6 +161,11 @@ namespace Police_Intranet
                 LoadControl(Cal);
         }
 
+        private void btnDoubleCal_Click(object sender, EventArgs e)
+        {
+            if (_currentUser != null)
+                LoadControl(DoubleCal);
+        }
         private void btnSideNotice_Click(object sender, EventArgs e)
         {
             if (_currentUser != null)

@@ -14,6 +14,7 @@ namespace Police_Intranet
         private System.Windows.Forms.Panel mainPanel;
         private System.Windows.Forms.Button btnMypage;
         private System.Windows.Forms.Button btnCalculator;
+        private System.Windows.Forms.Button btnDoubleCal;
         private System.Windows.Forms.Button btnReport;
         private System.Windows.Forms.Button btnSideNotice;
         private System.Windows.Forms.Button btnAdmin;
@@ -39,6 +40,7 @@ namespace Police_Intranet
 
             this.btnMypage = new System.Windows.Forms.Button();
             this.btnCalculator = new System.Windows.Forms.Button();
+            this.btnDoubleCal = new System.Windows.Forms.Button();
             this.btnSideNotice = new System.Windows.Forms.Button();
             this.btnReport = new System.Windows.Forms.Button();
             this.btnAdmin = new System.Windows.Forms.Button();
@@ -96,6 +98,7 @@ namespace Police_Intranet
             SetupButton(this.btnAdmin, "🛠 관리자", this.btnAdmin_Click);
             SetupButton(this.btnReport, "📑 보고서&&맥비", this.btnReport_Click);
             SetupButton(this.btnSideNotice, "🚨 사이드 공지", this.btnSideNotice_Click);
+            SetupButton(this.btnDoubleCal, "⚖︎ 묻더 계산기", this.btnDoubleCal_Click);
             SetupButton(this.btnCalculator, "⚖︎ 법률 계산기", this.btnCalculator_Click);
             SetupButton(this.btnMypage, "👤 마이페이지", this.btnMypage_Click);
             SetupButton(this.btnLogout, "↩⏻ 로그아웃", this.BtnLogout_Click);
@@ -104,6 +107,7 @@ namespace Police_Intranet
             this.buttonsPanel.Controls.Add(this.btnAdmin);
             this.buttonsPanel.Controls.Add(this.btnReport);
             this.buttonsPanel.Controls.Add(this.btnSideNotice);
+            this.buttonsPanel.Controls.Add(this.btnDoubleCal);
             this.buttonsPanel.Controls.Add(this.btnCalculator);
             this.buttonsPanel.Controls.Add(this.btnMypage);
 
@@ -150,6 +154,7 @@ namespace Police_Intranet
 
             // 버튼 초기 표시 상태
             btnMypage.Visible = true;
+            btnDoubleCal.Visible = true;
             btnReport.Visible = true;
             btnAdmin.Visible = true;
             btnLogout.Visible = true;
