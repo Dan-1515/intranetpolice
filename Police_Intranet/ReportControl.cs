@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Police_Intranet.Models;
 using Police_Intranet.Services;
+using System.Diagnostics.Eventing.Reader;
 
 namespace Police_Intranet
 {
@@ -26,6 +27,8 @@ namespace Police_Intranet
         private TextBox txtBailFine;
         private TextBox txtBailDetention;
         private TextBox txtPeak;
+
+        private CheckBox cbPeak;
 
         private ListBox lbUser;
         private ListBox lbUsers;
@@ -689,6 +692,20 @@ namespace Police_Intranet
             {
                 UpdateFineAndDetention();  // 수 바뀌면 자동 계산
             };
+
+            cbPeak = new CheckBox
+            {
+                Text = "피크",
+                Location = new Point(10, y + 50),
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular)
+            };
+            rightPanel.Controls.Add(cbPeak);
+            cbPeak.CheckedChanged += (s, e) =>
+            {
+                UpdateFineAndDetention();  // 체크박스 바뀌면 자동 계산
+            };
         }
 
         private TextBox CreateReadonlyTextBox(int x, int y)
@@ -761,6 +778,10 @@ namespace Police_Intranet
             long totalBailFine = 0;
             int totalBailDetention = 0;
             long Bail = 500_000L;
+
+            bool isPeak = cbPeak.Checked;
+            int bailDetentionBase = isPeak ? 5 : 10;
+            int BailPerMinute = 500_000;
 
             int Peak = 0;
             int.TryParse(txtPeak.Text.Trim(), out Peak);
@@ -839,6 +860,22 @@ namespace Police_Intranet
                         break;
                 }
             }
+
+            if (isPeak)
+            {
+                int originalDetention = totalDetention;
+
+                // 피크 체크 시 보석 구금 5분 고정
+                totalBailDetention = 5;
+
+                int reducedMinutes = originalDetention - 5;
+                if (reducedMinutes < 0)
+                    reducedMinutes = 0;
+
+                // 줄어든 분 × 50만원 × 인원수
+                totalBailFine += reducedMinutes * 500_000L * participantCount;
+            }
+
 
             txtFine.Text = $"{totalFine:N0}원";
             txtDetention.Text = $"{totalDetention}분";
