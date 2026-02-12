@@ -704,7 +704,7 @@ namespace Police_Intranet
             rightPanel.Controls.Add(cbPeak);
             cbPeak.CheckedChanged += (s, e) =>
             {
-                UpdateFineAndDetention();  // 체크박스 바뀌면 자동 계산
+                UpdateFineAndDetention();  // 체크 시 자동 계산
             };
         }
 
