@@ -58,6 +58,8 @@ namespace Police_Intranet
         private System.Windows.Forms.Timer rideTimer;
         // private System.Windows.Forms.Timer workinguserTimer;
 
+        private string selectedMutder = "";
+
 
         public ReportControl(Main main, User currentUser, MypageControl mypage, DiscordWebhook Webhook)
         {
@@ -86,7 +88,7 @@ namespace Police_Intranet
             Panel topSpacer = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 40,
+                Height = 20,
                 BackColor = Color.FromArgb(30, 30, 30)
             };
 
@@ -110,7 +112,7 @@ namespace Police_Intranet
                 Text = "강도RP",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
-                Location = new Point(10, 60),
+                Location = new Point(10, 35),
                 AutoSize = true
             };
             mainPanel.Controls.Add(lblRobbery);
@@ -118,7 +120,7 @@ namespace Police_Intranet
             // FlowLayoutPanel 설정
             FlowLayoutPanel flpRobbery = new FlowLayoutPanel
             {
-                Location = new Point(10, 85),
+                Location = new Point(10, 65),
                 Size = new Size(390, 120),   // 줄바꿈 때문에 Height 증가
                 AutoSize = false,
                 BackColor = Color.Transparent,
@@ -164,14 +166,14 @@ namespace Police_Intranet
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
 
                 // 🔥 위치 내려줌 (기존 155 → 235)
-                Location = new Point(10, 205),
+                Location = new Point(10, 185),
                 AutoSize = true
             };
             mainPanel.Controls.Add(lblStory);
 
             FlowLayoutPanel flpStory = new FlowLayoutPanel
             {
-                Location = new Point(10, 225),
+                Location = new Point(10, 205),
 
                 Size = new Size(650, 65),
                 AutoSize = false,
@@ -204,11 +206,82 @@ namespace Police_Intranet
 
             mainPanel.Controls.Add(flpStory);
 
+            // ===== 묻더 계산 버튼 =====
+            Label lblMutder = new Label
+            {
+                Text = "묻더 계산",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 12F, FontStyle.Bold),
+                Location = new Point(10, flpStory.Bottom + 15),
+                AutoSize = true
+            };
+            mainPanel.Controls.Add(lblMutder);
+
+            FlowLayoutPanel flpMutder = new FlowLayoutPanel
+            {
+                Location = new Point(10, lblMutder.Bottom + 5),
+                Size = new Size(650, 120),
+                BackColor = Color.Transparent,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true
+            };
+
+            string[] mutderButtons =
+                {
+                    "묻더 승", "묻더 패",
+                    "묻묻더 승", "묻묻더 패",
+                    "묻묻묻더 승", "묻묻묻더 패"
+                };
+
+            foreach (var name in mutderButtons)
+            {
+                Button btn = new Button
+                {
+                    Text = name,
+                    Size = new Size(120, 40),
+                    BackColor = Color.FromArgb(60, 60, 60),
+                    ForeColor = Color.White,
+                    FlatStyle = FlatStyle.Flat,
+                    Font = new Font("Segoe UI", 9F, FontStyle.Regular),
+                    Margin = new Padding(4),
+                    Cursor = Cursors.Hand
+                };
+
+                btn.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
+                btn.FlatAppearance.BorderSize = 1;
+
+                btn.Click += (s, e) =>
+                {
+                    // 🔥 이미 선택된 버튼을 다시 누른 경우 → 해제
+                    if (selectedMutder == btn.Text)
+                    {
+                        btn.BackColor = Color.FromArgb(60, 60, 60);
+                        selectedMutder = "";
+                    }
+                    else
+                    {
+                        // 🔥 묻더 버튼 전체 초기화
+                        foreach (Button b in flpMutder.Controls)
+                            b.BackColor = Color.FromArgb(60, 60, 60);
+
+                        // 🔥 현재 버튼 선택
+                        btn.BackColor = Color.FromArgb(100, 140, 240);
+                        selectedMutder = btn.Text;
+                    }
+
+                    UpdateFineAndDetention();
+                };
+
+                flpMutder.Controls.Add(btn);
+            }
+
+
+            mainPanel.Controls.Add(flpMutder);
 
             // 맥비 운행표 & 보고서
-            int panelsTop = flpStory.Bottom + 40;
+            int panelsTop = flpMutder.Bottom + 20;
             int panelsHeight = 300;
-            int panelsWidth = (flpStory.Width - 25) / 2;
+            int panelsWidth = (flpMutder.Width - 25) / 2;
 
             panelLeft = new Panel
             {
@@ -763,6 +836,95 @@ namespace Police_Intranet
             return btn;
         }
 
+        private readonly Dictionary<(string story, string mutder), Penalty> penaltyTable
+                = new()
+            {
+                // ===== ATM =====
+            { ("ATM", "묻더 승"),     new Penalty(200_000_000, 20) },
+            { ("ATM", "묻더 패"),     new Penalty(100_000_000, 0) },
+            { ("ATM", "묻묻더 승"),   new Penalty(300_000_000, 30) },
+            { ("ATM", "묻묻더 패"),   new Penalty(200_000_000, 0) },
+            { ("ATM", "묻묻묻더 승"), new Penalty(400_000_000, 40) },
+            { ("ATM", "묻묻묻더 패"), new Penalty(300_000_000, 0) },
+
+            // ===== 편의점 =====
+            { ("편의점", "묻더 승"),     new Penalty(200_000_000, 30) },
+            { ("편의점", "묻더 패"),     new Penalty(100_000_000, 0) },
+            { ("편의점", "묻묻더 승"),   new Penalty(300_000_000, 45) },
+            { ("편의점", "묻묻더 패"),   new Penalty(200_000_000, 0) },
+            { ("편의점", "묻묻묻더 승"), new Penalty(400_000_000, 60) },
+            { ("편의점", "묻묻묻더 패"), new Penalty(300_000_000, 0) },
+
+            // ===== 빈집 =====
+            { ("남부빈집", "묻더 승"),     new Penalty(200_000_000, 30) },
+            { ("남부빈집", "묻더 패"),     new Penalty(100_000_000, 0) },
+            { ("남부빈집", "묻묻더 승"),   new Penalty(300_000_000, 45) },
+            { ("남부빈집", "묻묻더 패"),   new Penalty(200_000_000, 0) },
+            { ("남부빈집", "묻묻묻더 승"), new Penalty(400_000_000, 60) },
+            { ("남부빈집", "묻묻묻더 패"), new Penalty(300_000_000, 0) },
+
+            // ===== 보석상 =====
+            { ("보석상", "묻더 승"),     new Penalty(300_000_000, 40) },
+            { ("보석상", "묻더 패"),     new Penalty(150_000_000, 0) },
+            { ("보석상", "묻묻더 승"),   new Penalty(450_000_000, 60) },
+            { ("보석상", "묻묻더 패"),   new Penalty(300_000_000, 0) },
+            { ("보석상", "묻묻묻더 승"), new Penalty(600_000_000, 80) },
+            { ("보석상", "묻묻묻더 패"), new Penalty(450_000_000, 0) },
+
+            // ===== 남부은행 =====
+            { ("남부은행", "묻더 승"),     new Penalty(300_000_000, 60) },
+            { ("남부은행", "묻더 패"),     new Penalty(150_000_000, 0) },
+            { ("남부은행", "묻묻더 승"),   new Penalty(450_000_000, 90) },
+            { ("남부은행", "묻묻더 패"),   new Penalty(300_000_000, 0) },
+            { ("남부은행", "묻묻묻더 승"), new Penalty(600_000_000, 120) },
+            { ("남부은행", "묻묻묻더 패"), new Penalty(450_000_000, 0) },
+
+            // ===== 수배 =====
+            { ("수배", "묻더 승"),     new Penalty(600_000_000, 60) },
+            { ("수배", "묻더 패"),     new Penalty(300_000_000, 0) },
+            { ("수배", "묻묻더 승"),   new Penalty(90_000_000, 90) },
+            { ("수배", "묻묻더 패"),   new Penalty(600_000_000, 0) },
+            { ("수배", "묻묻묻더 승"), new Penalty(120_000_000, 120) },
+            { ("수배", "묻묻묻더 패"), new Penalty(900_000_000, 0) },
+
+            // ===== 즉흥 ===== 
+            { ("즉흥", "묻더 승"),     new Penalty(400_000_000, 60) },
+            { ("즉흥", "묻더 패"),     new Penalty(200_000_000, 0) },
+            { ("즉흥", "묻묻더 승"),   new Penalty(600_000_000, 90) },
+            { ("즉흥", "묻묻더 패"),   new Penalty(400_000_000, 0) },
+            { ("즉흥", "묻묻묻더 승"), new Penalty(800_000_000, 120) },
+            { ("즉흥", "묻묻묻더 패"), new Penalty(600_000_000, 0) },
+
+            // ===== 영장 =====
+            { ("영장", "묻더 승"),     new Penalty(400_000_000, 60) },
+            { ("영장", "묻더 패"),     new Penalty(200_000_000, 0) },
+            { ("영장", "묻묻더 승"),   new Penalty(600_000_000, 90) },
+            { ("영장", "묻묻더 패"),   new Penalty(400_000_000, 0) },
+            { ("영장", "묻묻묻더 승"), new Penalty(800_000_000, 120) },
+            { ("영장", "묻묻묻더 패"), new Penalty(600_000_000, 0) },
+
+            // ===== 경털1차 =====
+            { ("경털1차", "묻더 승"),     new Penalty(400_000_000, 60) },
+            { ("경털1차", "묻더 패"),     new Penalty(200_000_000, 0) },
+            { ("경털1차", "묻묻더 승"),   new Penalty(600_000_000, 90) },
+            { ("경털1차", "묻묻더 패"),   new Penalty(400_000_000, 0) },
+            { ("경털1차", "묻묻묻더 승"), new Penalty(800_000_000, 120) },
+            { ("경털1차", "묻묻묻더 패"), new Penalty(600_000_000, 0) },
+        };
+            
+
+        public class Penalty
+        {
+            public long Fine { get; set; }
+            public int Detention { get; set; }
+
+            public Penalty(long fine, int detention)
+            {
+                Fine = fine;
+                Detention = detention;
+            }
+        }
+
         private void UpdateRightPanelLocation()
         {
             if (rightPanel == null || mainPanel == null) return;
@@ -794,70 +956,83 @@ namespace Police_Intranet
 
             foreach (var crime in selectedCrimes)
             {
-                switch (crime)
+                if (!string.IsNullOrEmpty(selectedMutder) &&
+                    penaltyTable.TryGetValue((crime, selectedMutder), out var penalty))
                 {
-                    case "ATM":
-                        totalFine = 100_000_000L * participantCount;
-                        totalDetention = 10;
-                        totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                    totalFine = penalty.Fine * participantCount;
+                    totalDetention = penalty.Detention;
 
-                    case "편의점":
-                        totalFine = 100_000_000L * participantCount;
-                        totalDetention = 15;
-                        totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                    totalBailFine = (penalty.Fine + (Peak * Bail)) * participantCount;
+                    totalBailDetention = totalDetention - Peak;
+                }
 
-                    case "남부빈집":
-                        totalFine = 100_000_000L * participantCount;
-                        totalDetention = 15;
-                        totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                else
+                {
+                    switch (crime)
+                    {
+                        case "ATM":
+                            totalFine = 100_000_000L * participantCount;
+                            totalDetention = 10;
+                            totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
 
-                    case "보석상":
-                        totalFine = 150_000_000L * participantCount;
-                        totalDetention = 20;
-                        totalBailFine = (150_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                        case "편의점":
+                            totalFine = 100_000_000L * participantCount;
+                            totalDetention = 15;
+                            totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
 
-                    case "남부은행":
-                        totalFine = 150_000_000L * participantCount;
-                        totalDetention = 30;
-                        totalBailFine = (150_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                        case "남부빈집":
+                            totalFine = 100_000_000L * participantCount;
+                            totalDetention = 15;
+                            totalBailFine = (100_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
 
-                    case "수배":
-                        totalFine = 300_000_000L * participantCount;
-                        totalDetention = 30;
-                        totalBailFine = (300_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                        case "보석상":
+                            totalFine = 150_000_000L * participantCount;
+                            totalDetention = 20;
+                            totalBailFine = (150_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
 
-                    case "즉흥":
-                        totalFine = 200_000_000L * participantCount;
-                        totalDetention = 30;
-                        totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                        case "남부은행":
+                            totalFine = 150_000_000L * participantCount;
+                            totalDetention = 30;
+                            totalBailFine = (150_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
 
-                    case "영장":
-                        totalFine = 200_000_000L * participantCount;
-                        totalDetention = 30;
-                        totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                        case "수배":
+                            totalFine = 300_000_000L * participantCount;
+                            totalDetention = 30;
+                            totalBailFine = (300_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
 
-                    case "경털1차":
-                        totalFine = 200_000_000L * participantCount;
-                        totalDetention = 30;
-                        totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
-                        totalBailDetention = totalDetention - Peak;
-                        break;
+                        case "즉흥":
+                            totalFine = 200_000_000L * participantCount;
+                            totalDetention = 30;
+                            totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
+
+                        case "영장":
+                            totalFine = 200_000_000L * participantCount;
+                            totalDetention = 30;
+                            totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
+
+                        case "경털1차":
+                            totalFine = 200_000_000L * participantCount;
+                            totalDetention = 30;
+                            totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
+                    }
                 }
             }
 
@@ -876,13 +1051,11 @@ namespace Police_Intranet
                 totalBailFine += reducedMinutes * 500_000L * participantCount;
             }
 
-
             txtFine.Text = $"{totalFine:N0}원";
             txtDetention.Text = $"{totalDetention}분";
             txtBailFine.Text = $"{totalBailFine:N0}원";
             txtBailDetention.Text = $"{totalBailDetention}분";
         }
-
 
         private async Task LoadUsersAsync()
         {

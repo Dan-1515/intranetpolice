@@ -154,7 +154,7 @@ namespace Police_Intranet
 
             // 버튼 초기 표시 상태
             btnMypage.Visible = true;
-            btnDoubleCal.Visible = true;
+            btnDoubleCal.Visible = false;
             btnReport.Visible = true;
             btnAdmin.Visible = true;
             btnLogout.Visible = true;
