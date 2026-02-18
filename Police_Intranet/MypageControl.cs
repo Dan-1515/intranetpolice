@@ -18,7 +18,6 @@ namespace Police_Intranet
         private Button btnToggleWork;
         private Label lblWeek;
         private Label lblWorkTime;
-        private Label lblHireDate;
         private Label lblWeekTotal;
         private Label lblRpTotal;
 
@@ -99,9 +98,13 @@ namespace Police_Intranet
 
                 // 🔥 여기 중요
                 if (isCheckedIn && todayWork.LastWorkStart.HasValue)
+                {
                     runtimeWorkStart = todayWork.LastWorkStart.Value;
+                }
                 else
+                {
                     runtimeWorkStart = null;
+                }
             }
 
             currentKstDate = GetKstNow().Date;
@@ -228,7 +231,7 @@ namespace Police_Intranet
 
             Controls.AddRange(new Control[]
             {
-                lblUserid, lblNickname, lblRank, lblHireDate, btnToggleWork, lblWorkTime, lblWeek,
+                lblUserid, lblNickname, lblRank, btnToggleWork, lblWorkTime, lblWeek,
                 workRankPanel, rpRankPanel, lblWeekTotal, lblRpTotal
             });
 
@@ -274,8 +277,8 @@ namespace Police_Intranet
 
         private async Task ToggleWorkAsync()
         {
-            DateTime now = DateTime.UtcNow;
-            string today = GetKstNow().ToString("yyyy-MM-dd");
+            DateTime now = GetKstNow();
+            string today = now.ToString("yyyy-MM-dd");
 
             if (!isCheckedIn)
             {
@@ -320,14 +323,14 @@ namespace Police_Intranet
             await LoadUserRanksAsync();
         }
 
-        private async Task ForceCheckoutInternalAsync(DateTime utcNow)
+        private async Task ForceCheckoutInternalAsync(DateTime kstNow)
         {
             workTimer.Stop();
 
             if (!isCheckedIn || runtimeWorkStart == null || todayWork == null)
                 return;
 
-            TimeSpan worked = utcNow - runtimeWorkStart.Value;
+            TimeSpan worked = kstNow - runtimeWorkStart.Value;
             todayTotal += worked;
             weekTotal += worked;
 
@@ -337,10 +340,10 @@ namespace Police_Intranet
                 .Set(x => x.TodayTotalSeconds, (long)todayTotal.TotalSeconds)
                 .Set(x => x.WeekTotalSeconds, (long)weekTotal.TotalSeconds)
                 .Set(x => x.LastWorkStart, null)
-                .Set(x => x.CheckoutTime, utcNow)
+                .Set(x => x.CheckoutTime, kstNow)
                 .Update();
 
-            await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, false, currentUser, runtimeWorkStart.Value, utcNow);
+            await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, false, currentUser, runtimeWorkStart.Value, kstNow);
 
             runtimeWorkStart = null;
             isCheckedIn = false;
@@ -384,7 +387,7 @@ namespace Police_Intranet
 
             if (isCheckedIn && runtimeWorkStart.HasValue)
             {
-                TimeSpan current = DateTime.UtcNow - runtimeWorkStart.Value;
+                TimeSpan current = GetKstNow() - runtimeWorkStart.Value;
                 displayToday += current;
                 displayWeek += current;
             }
@@ -396,7 +399,7 @@ namespace Police_Intranet
         public async Task ForceCheckoutIfNeededAsync()
         {
             if (isCheckedIn)
-                await ForceCheckoutInternalAsync(DateTime.UtcNow);
+                await ForceCheckoutInternalAsync(GetKstNow());
         }
 
         public async Task UpdateUserAsync(User user)

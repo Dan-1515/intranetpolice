@@ -88,7 +88,7 @@ namespace Police_Intranet
             Panel topSpacer = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 20,
+                Height = 50,
                 BackColor = Color.FromArgb(30, 30, 30)
             };
 
@@ -186,9 +186,10 @@ namespace Police_Intranet
             // 스토리RP 리스트
             var storyData = new Dictionary<string, List<string>>
                 {
-                    { "수배", new List<string> { "수배" } },
                     { "즉흥", new List<string> { "즉흥" } },
-                    { "영장", new List<string> { "영장" } }
+                    { "영장", new List<string> { "영장" } },
+                    { "수배 (4인미만)", new List<string> { "수배 (4인미만)" } },
+                    { "수배 (4인이상)", new List<string> { "수배 (4인이상)" } },
                 };
 
             string[] storyNames = storyData.Keys.ToArray();
@@ -215,7 +216,7 @@ namespace Police_Intranet
                 Location = new Point(10, flpStory.Bottom + 15),
                 AutoSize = true
             };
-            mainPanel.Controls.Add(lblMutder);
+            // mainPanel.Controls.Add(lblMutder);
 
             FlowLayoutPanel flpMutder = new FlowLayoutPanel
             {
@@ -275,13 +276,12 @@ namespace Police_Intranet
                 flpMutder.Controls.Add(btn);
             }
 
-
-            mainPanel.Controls.Add(flpMutder);
+            // mainPanel.Controls.Add(flpMutder);
 
             // 맥비 운행표 & 보고서
-            int panelsTop = flpMutder.Bottom + 20;
+            int panelsTop = flpStory.Bottom + 20;
             int panelsHeight = 300;
-            int panelsWidth = (flpMutder.Width - 25) / 2;
+            int panelsWidth = (flpStory.Width - 25) / 2;
 
             panelLeft = new Panel
             {
@@ -375,7 +375,7 @@ namespace Police_Intranet
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10F)
             };
-            cbRP.Items.AddRange(new string[] { "출석/수배", "즉흥", "순찰" });
+            cbRP.Items.AddRange(new string[] { "출석/수배", "즉흥", "도주", "순찰" });
             panelRight.Controls.Add(cbRP);
 
             btnStartRide = new Button
@@ -939,7 +939,7 @@ namespace Police_Intranet
             int totalDetention = 0;
             long totalBailFine = 0;
             int totalBailDetention = 0;
-            long Bail = 500_000L;
+            long Bail = 3_000_000L;
 
             bool isPeak = cbPeak.Checked;
             int bailDetentionBase = isPeak ? 5 : 10;
@@ -1005,10 +1005,17 @@ namespace Police_Intranet
                             totalBailDetention = totalDetention - Peak;
                             break;
 
-                        case "수배":
-                            totalFine = 300_000_000L * participantCount;
-                            totalDetention = 30;
-                            totalBailFine = (300_000_000L + (Peak * Bail)) * participantCount;
+                        case "수배 (4인미만)":
+                            totalFine = 800_000_000L * participantCount;
+                            totalDetention = 50;
+                            totalBailFine = (800_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
+
+                        case "수배 (4인이상)":
+                            totalFine = 400_000_000L * participantCount;
+                            totalDetention = 50;
+                            totalBailFine = (400_000_000L + (Peak * Bail)) * participantCount;
                             totalBailDetention = totalDetention - Peak;
                             break;
 
@@ -1020,9 +1027,9 @@ namespace Police_Intranet
                             break;
 
                         case "영장":
-                            totalFine = 200_000_000L * participantCount;
-                            totalDetention = 30;
-                            totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
+                            totalFine = 400_000_000L * participantCount;
+                            totalDetention = 50;
+                            totalBailFine = (400_000_000L + (Peak * Bail)) * participantCount;
                             totalBailDetention = totalDetention - Peak;
                             break;
 

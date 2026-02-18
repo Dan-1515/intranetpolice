@@ -379,7 +379,7 @@ namespace Police_Intranet
             int totalBailDetention = 10;
 
             const int MAX_DETENTION = 150;
-            const int BAIL_PER_MINUTE = 500_000;
+            const int BAIL_PER_MINUTE = 3_000_000;
 
             bool isPeak = chkNewbie.Checked;      // 피크 체크
             int bailDetentionBase = isPeak ? 5 : 10;
