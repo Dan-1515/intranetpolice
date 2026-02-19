@@ -1054,8 +1054,8 @@ namespace Police_Intranet
                 if (reducedMinutes < 0)
                     reducedMinutes = 0;
 
-                // 줄어든 분 × 50만원 × 인원수
-                totalBailFine += reducedMinutes * 500_000L * participantCount;
+                // 줄어든 분 × 300만원 × 인원수
+                totalBailFine += reducedMinutes * 3_000_000L * participantCount;
             }
 
             txtFine.Text = $"{totalFine:N0}원";
@@ -1064,27 +1064,41 @@ namespace Police_Intranet
             txtBailDetention.Text = $"{totalBailDetention}분";
         }
 
-        private async Task LoadUsersAsync()
+        public async Task LoadUsersAsync()
         {
             try
             {
-                // isapprove = true 필터 적용
-                var response = await SupabaseClient.Instance
+                var worksResponse = await SupabaseClient.Instance
+                    .From<Work>()
+                    .Where(w => w.IsWorking == true)
+                    .Get();
+
+                var usersResponse = await SupabaseClient.Instance
                     .From<User>()
                     .Get();
 
-                var users = response.Models ?? new List<User>();
+                var users = usersResponse.Models ?? new List<User>();
+                var userDict = users.ToDictionary(u => u.Id);
+
+                var workingUsers = new List<User>();
+
+                foreach (var work in worksResponse.Models)
+                {
+                    if (userDict.TryGetValue(work.UserId, out var user))
+                        workingUsers.Add(user);
+                }
 
                 if (lbUsers.InvokeRequired)
-                    lbUsers.Invoke(() => UpdateLbUsers(users));
+                    lbUsers.Invoke(() => UpdateLbUsers(workingUsers));
                 else
-                    UpdateLbUsers(users);
+                    UpdateLbUsers(workingUsers);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("유저 목록 로딩 실패: " + ex.Message);
             }
         }
+
 
         private void UpdateLbUsers(List<User> users)
         {

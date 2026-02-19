@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static Police_Intranet.MypageControl;
 using static Supabase.Postgrest.Constants;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
@@ -18,18 +19,22 @@ namespace Police_Intranet
         private Panel panelUserlist;
         private Panel panelWeekTime;
         private Panel panelUsersRp;
+        private Panel panelForceCheckOut;
 
         private ListBox lbWaiting;
         private ListBox lbUsers;
         private ListBox lbTimes;
         private ListBox lbRidingUsers;
         private ListBox lbRpReset;
+        private ListBox lbCheckOut;
 
         private Button btnApprove;
         private Button btnReject;
         private Button btnUpdate;
         private Button btnDelete;
         private Button btnForceRelease;
+        private Button btnForceSelectCheckout;
+        private Button btnForceAllCheckout;
 
         private TextBox txtUserId;
         private TextBox txtName;
@@ -98,7 +103,6 @@ namespace Police_Intranet
                 e.DrawFocusRectangle();
             };
         }
-
 
         private void InitializeUI()
         {
@@ -361,7 +365,14 @@ namespace Police_Intranet
             };
             panelWeekTime.Controls.Add(btnResetSelectedWeek);
 
-            Button btnResetWeek = new Button() { Text = "전체 초기화", Location = new Point(180, 360), Size = new Size(90, 35), BackColor = Color.FromArgb(150, 50, 50), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            Button btnResetWeek = new Button() 
+            { 
+                Text = "전체 초기화", Location = new Point(180, 360), 
+                Size = new Size(90, 35), 
+                BackColor = Color.FromArgb(150, 50, 50), 
+                ForeColor = Color.White, 
+                FlatStyle = FlatStyle.Flat 
+            };
             btnResetWeek.Click += async (s, e) =>
             {
                 if (MessageBox.Show("모든 유저의 주간 출근시간을 초기화하시겠습니까?", "확인", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
@@ -371,14 +382,68 @@ namespace Police_Intranet
             };
             panelWeekTime.Controls.Add(btnResetWeek);
 
+            panelForceCheckOut = new Panel()
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(30, 30, 30),
+                Padding = new Padding(10)
+            };
+
+            panelForceCheckOut.Controls.Add(new Label()
+            {
+                Text = "출근중인 유저 조회",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 14,
+                FontStyle.Bold),
+                Location = new Point(80, 10),
+                AutoSize = true
+            });
+
+            lbCheckOut = new ListBox()
+            {
+                Location = new Point(50, 50),
+                Size = new Size(250, 300),
+                BackColor = Color.FromArgb(50, 50, 50),
+                ForeColor = Color.White
+            };
+            panelForceCheckOut.Controls.Add(lbCheckOut);
+            ApplyHorizontalCenterAlign(lbCheckOut);
+
+            btnForceSelectCheckout = new Button()
+            {
+                Text = "선택 퇴근",
+                Location = new Point(70, 360),
+                Size = new Size(100, 35),
+                BackColor = Color.FromArgb(150, 50, 50),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnForceSelectCheckout.Click += BtnForceSelectCheckout_Click;
+            panelForceCheckOut.Controls.Add(btnForceSelectCheckout);
+
+            btnForceAllCheckout = new Button()
+            {
+                Text = "전체 퇴근",
+                Location = new Point(180, 360),
+                Size = new Size(100, 35),
+                BackColor = Color.FromArgb(150, 50, 50),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat
+            };
+            btnForceAllCheckout.Click += BtnForceAllCheckout_Click;
+            panelForceCheckOut.Controls.Add(btnForceAllCheckout);
+
             table.Controls.Add(panelSignupWaiting, 0, 0);
             table.Controls.Add(panelUserlist, 1, 0);
             table.Controls.Add(panelWeekTime, 2, 0);
             table.Controls.Add(panelRiding, 0, 1);
             table.Controls.Add(panelRpReset, 1, 1);
+            table.Controls.Add(panelForceCheckOut, 2, 1);
 
             this.Controls.Add(table);
         }
+
+        
 
         private async Task LoadAllDataAsync()
         {
@@ -387,6 +452,7 @@ namespace Police_Intranet
             await LoadWeekTimesAsync();
             await LoadRidingUsersAsync();
             await LoadRpUsersAsync();
+            await LoadWorkingUsersAsync();
         }
 
         private async Task LoadWaitingUsersAsync()
@@ -876,6 +942,147 @@ namespace Police_Intranet
             await main.Mypage.LoadUserRanksAsync();
 
             MessageBox.Show("모든 유저의 RP 횟수가 초기화되었습니다.");
+        }
+
+        public class ListBoxItem
+        {
+            public string Text { get; set; }
+            public long WorkId { get; set; }
+            public int UserId { get; set; }
+
+            public override string ToString()
+            {
+                return Text; // ListBox에는 이것만 보임
+            }
+        }
+
+        private async Task LoadWorkingUsersAsync()
+        {
+            lbCheckOut.Items.Clear();
+
+            var works = await client
+                .From<Work>()
+                .Where(w => w.IsWorking == true)
+                .Get();
+
+            var users = await client
+                .From<User>()
+                .Get();
+
+            var userDict = users.Models.ToDictionary(u => u.Id);
+
+            foreach (var work in works.Models)
+            {
+                if (!userDict.TryGetValue(work.UserId, out var user))
+                    continue;
+
+                // 표시용 텍스트
+                var item = new ListBoxItem
+                {
+                    Text = $"{user.UserId} | {user.Username}",
+                    WorkId = work.Id, // 🔥 숨겨진 진짜 키
+                    UserId = user.Id
+                };
+
+                lbCheckOut.Items.Add(item);
+            }
+        }
+
+        private async void BtnForceSelectCheckout_Click(object? sender, EventArgs e)
+        {
+            if (lbCheckOut.SelectedItem is not ListBoxItem selected)
+            {
+                MessageBox.Show("강제퇴근할 유저를 선택하세요.");
+                return;
+            }
+
+            long workId = selected.WorkId;
+            int userId = selected.UserId;
+
+            DateTime now = GetKstNow(); // 🔥 KST 통일
+
+            // 1️⃣ work 종료
+            await client
+                .From<Work>()
+                .Where(w => w.Id == workId && w.IsWorking == true)
+                .Set(w => w.IsWorking, false)
+                .Set(w => w.CheckoutTime, now)
+                .Set(w => w.LastWorkStart, null)
+                .Update();
+
+            // 2️⃣ users 근무 상태 종료
+            await client
+                .From<User>()
+                .Where(u => u.Id == userId)
+                .Set(u => u.IsWorking, false)
+                .Update();
+
+            // 3⃣ 마이페이지 UI 갱신
+            ForceCheckoutEventBus.Raise(userId);
+
+            MessageBox.Show("강제퇴근 처리 완료");
+
+            await LoadWorkingUsersAsync();
+        }
+
+        private async void BtnForceAllCheckout_Click(object? sender, EventArgs e)
+        {
+            try
+            {
+                DateTime now = MypageControl.GetKstNow();
+
+                // 1️⃣ 근무 중인 work 전부 조회
+                var worksRes = await client
+                    .From<Work>()
+                    .Where(w => w.IsWorking == true)
+                    .Get();
+
+                if (worksRes.Models.Count == 0)
+                {
+                    MessageBox.Show("현재 근무 중인 유저가 없습니다.");
+                    return;
+                }
+
+                foreach (var work in worksRes.Models)
+                {
+                    // 안전장치
+                    if (work.LastWorkStart == null)
+                        continue;
+
+                    int workedSeconds =
+                        (int)(now - work.LastWorkStart.Value).TotalSeconds;
+
+                    // 2️⃣ work 종료 + 시간 누적
+                    await client
+                        .From<Work>()
+                        .Where(w => w.Id == work.Id)
+                        .Set(w => w.IsWorking, false)
+                        .Set(w => w.TodayTotalSeconds, work.TodayTotalSeconds + workedSeconds)
+                        .Set(w => w.WeekTotalSeconds, work.WeekTotalSeconds + workedSeconds)
+                        .Set(w => w.LastWorkStart, null)
+                        .Set(w => w.CheckoutTime, now)
+                        .Update();
+
+                    // 3️⃣ users 근무 상태 종료
+                    await client
+                        .From<User>()
+                        .Where(u => u.Id == work.UserId)
+                        .Set(u => u.IsWorking, false)
+                        .Update();
+
+                    // 5️⃣ 마이페이지 UI 갱신 이벤트
+                    MypageControl.ForceCheckoutEventBus.Raise(work.UserId);
+                }
+
+                MessageBox.Show($"전체 강제퇴근 완료 ({worksRes.Models.Count}명)");
+
+                // 6️⃣ 관리자 리스트 갱신
+                await LoadWorkingUsersAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("전체 강제퇴근 실패: " + ex.Message);
+            }
         }
 
 

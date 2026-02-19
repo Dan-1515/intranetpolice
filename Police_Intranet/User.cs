@@ -8,6 +8,8 @@ namespace Police_Intranet.Models
     [Table("users")]
     public class User : BaseModel
     {
+        public List<Work> work { get; set; }
+
         [PrimaryKey("id", false)]
         public int Id { get; set; }
 

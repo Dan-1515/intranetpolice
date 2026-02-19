@@ -36,6 +36,8 @@ namespace Police_Intranet
 
         public bool IsLogoutRequested { get; private set; } = false;
 
+        public event Func<Task>? WorkStatusChanged;
+
         public Main(User loggedInUser, Client client)
         {
             InitializeComponent();
@@ -69,6 +71,14 @@ namespace Police_Intranet
             {
                 await Mypage.InitializeAsync();
             }
+            this.WorkStatusChanged += async () => await Report.LoadUsersAsync();
+
+        }
+
+        public async Task RaiseWorkStatusChangedAsync()
+        {
+            if (WorkStatusChanged != null)
+                await WorkStatusChanged.Invoke();
         }
 
         private void InitializeFormProperties()

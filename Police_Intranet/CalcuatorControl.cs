@@ -180,7 +180,7 @@ namespace Police_Intranet
                 Checked = false,
                 BackColor = Color.Transparent
             };
-            rightPanel.Controls.Add(chkNewbie);
+            // rightPanel.Controls.Add(chkNewbie);
             chkNewbie.CheckedChanged += (s, e) =>
             {
                 UpdateFineAndDetention(); // 상태가 바뀌면 다시 계산

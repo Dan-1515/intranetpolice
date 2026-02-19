@@ -61,6 +61,8 @@ namespace Police_Intranet
 
         public async Task InitializeAsync()
         {
+            ForceCheckoutEventBus.OnForceCheckout += HandleForceCheckout;
+
             await LoadTodayWorkAsync();
             await LoadUserRanksAsync();
 
@@ -318,9 +320,16 @@ namespace Police_Intranet
             {
                 await ForceCheckoutInternalAsync(now);
             }
+            
 
+            workTimer.Start();
             UpdateWorkTimeLabel();
             await LoadUserRanksAsync();
+
+            if (this.ParentForm is Main main)
+            {
+                await main.RaiseWorkStatusChangedAsync();
+            }
         }
 
         private async Task ForceCheckoutInternalAsync(DateTime kstNow)
@@ -363,6 +372,12 @@ namespace Police_Intranet
             }
 
             await LoadUserRanksAsync();
+
+            if (this.ParentForm is Main main)
+            {
+                await main.RaiseWorkStatusChangedAsync();
+            }
+
         }
 
         private void UpdateWorkTimeLabel()
@@ -429,7 +444,7 @@ namespace Police_Intranet
             UpdateWorkTimeLabel();
         }
 
-        private static DateTime GetKstNow()
+        public static DateTime GetKstNow()
         {
             return TimeZoneInfo.ConvertTimeFromUtc(
                 DateTime.UtcNow,
@@ -673,6 +688,43 @@ namespace Police_Intranet
                 Height = 28,
                 TextAlign = ContentAlignment.MiddleCenter
             };
+        }
+
+        public static class ForceCheckoutEventBus
+        {
+            public static event Action<int>? OnForceCheckout;
+
+            public static void Raise(int userId)
+            {
+                OnForceCheckout?.Invoke(userId);
+            }
+        }
+
+        private async void HandleForceCheckout(int userId)
+        {
+            if (currentUser == null) return;
+            if (currentUser.Id != userId) return;
+
+            await ForceCheckoutInternalAsync(GetKstNow());
+        }
+
+        public async Task ApplyForceCheckoutAsync()
+        {
+            // 1️⃣ 상태값만 변경
+            isCheckedIn = false;
+
+            // 2️⃣ 타이머 중지
+            if (workTimer != null)
+            {
+                workTimer.Stop();
+            }
+
+            // 3️⃣ 버튼 UI 복구
+            btnToggleWork.Text = "출근";
+            btnToggleWork.BackColor = Color.FromArgb(100, 140, 240);
+
+            // 4️⃣ DB에서 최신 상태 다시 읽기 (INSERT ❌)
+            await ForceReloadFromDbAsync();
         }
 
     }

@@ -13,12 +13,25 @@
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                // 🔥 이벤트 해제 (가장 중요)
+                ForceCheckoutEventBus.OnForceCheckout -= HandleForceCheckout;
+
+                // 🔥 타이머 정리
+                if (workTimer != null)
+                {
+                    workTimer.Stop();
+                    workTimer.Dispose();
+                    workTimer = null;
+                }
+
+                // 디자이너 컴포넌트
+                components?.Dispose();
             }
             base.Dispose(disposing);
         }
+
 
         #region Component Designer generated code
 
