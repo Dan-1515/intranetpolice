@@ -8,7 +8,6 @@ namespace Police_Intranet.Models
     [Table("users")]
     public class User : BaseModel
     {
-        public List<Work> work { get; set; }
 
         [PrimaryKey("id", false)]
         public int Id { get; set; }
@@ -46,6 +45,13 @@ namespace Police_Intranet.Models
         [Column("isworking")]
         [JsonProperty("isworking")]
         public bool IsWorking { get; set; }
+
+        [Column("work")]
+        [JsonProperty("work")]
+        public bool Work
+        {
+            get; set;
+        }
 
         [Column("today_total_seconds")]
         [JsonProperty("today_total_seconds")]
