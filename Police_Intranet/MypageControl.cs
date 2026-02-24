@@ -28,7 +28,6 @@ namespace Police_Intranet
         private TimeSpan todayTotal = TimeSpan.Zero;
         private TimeSpan weekTotal = TimeSpan.Zero;
 
-        private DateTime? runtimeWorkStart = null;
         private WinTimer workTimer;
 
         public User currentUser;
@@ -90,7 +89,6 @@ namespace Police_Intranet
                 // 오늘 기록 없으면 → 주간 최신값 로드
                 await LoadWeekFromLatestRowAsync();
 
-                runtimeWorkStart = null;
             }
             else
             {
@@ -98,20 +96,18 @@ namespace Police_Intranet
                 weekTotal = TimeSpan.FromSeconds(todayWork.WeekTotalSeconds);
                 isCheckedIn = todayWork.IsWorking;
 
-                // 🔥 여기 중요
-                if (isCheckedIn && todayWork.LastWorkStart.HasValue)
-                {
-                    runtimeWorkStart = todayWork.LastWorkStart.Value;
-                }
-                else
-                {
-                    runtimeWorkStart = null;
-                }
             }
-
+            
             currentKstDate = GetKstNow().Date;
 
             btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
+
+            // 출근 직후 UI 시간 보정
+            if (todayWork != null && todayWork.IsWorking)
+            {
+                todayWork.LastWorkStart = GetKstNow();
+            }
+
             UpdateWorkTimeLabel();
         }
 
@@ -279,50 +275,37 @@ namespace Police_Intranet
 
         private async Task ToggleWorkAsync()
         {
+            // UI 기준 시간만 필요 (DB에는 절대 직접 안 넣음)
             DateTime now = GetKstNow();
-            string today = now.ToString("yyyy-MM-dd");
 
             if (!isCheckedIn)
             {
+                // ======================
+                // 출근 처리 (DB가 전부 담당)
+                // ======================
                 isCheckedIn = true;
-                runtimeWorkStart = now;
                 btnToggleWork.Text = "퇴근";
                 btnToggleWork.BackColor = Color.FromArgb(150, 50, 50);
+                workTimer.Start();
 
-                if (todayWork == null)
-                {
-                    var inserted = await supabase.From<Work>().Insert(new Work
-                    {
-                        UserId = currentUser.Id,
-                        Date = today,
-                        IsWorking = true,
-                        LastWorkStart = now,
-                        TodayTotalSeconds = 0,
-                        WeekTotalSeconds = (long)weekTotal.TotalSeconds,
-                        CheckinTime = now
-                    });
+                // 🔥 출근 시간/누적 계산은 DB 함수만 호출
+                await supabase.Rpc("check_in", new { p_user_id = currentUser.Id });
 
-                    todayWork = inserted.Models.First();
-                }
-                else
-                {
-                    await supabase.From<Work>()
-                        .Where(x => x.Id == todayWork.Id)
-                        .Set(x => x.IsWorking, true)
-                        .Set(x => x.LastWorkStart, now)
-                        .Set(x => x.CheckinTime, now)
-                        .Update();
-                }
+                // DB 최신 상태 다시 로드
+                await LoadTodayWorkAsync();
 
-                await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, true, currentUser, now, null);
+                // 디스코드 로그 (출근은 시간 계산 불필요)
+                await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, true, currentUser, null, null);
             }
             else
             {
+                // ======================
+                // 퇴근 처리
+                // ======================
                 await ForceCheckoutInternalAsync(now);
             }
-            
 
-            workTimer.Start();
+            
             UpdateWorkTimeLabel();
             await LoadUserRanksAsync();
 
@@ -336,40 +319,32 @@ namespace Police_Intranet
         {
             workTimer.Stop();
 
-            if (!isCheckedIn || runtimeWorkStart == null || todayWork == null)
+            if (!isCheckedIn)
                 return;
 
-            TimeSpan worked = kstNow - runtimeWorkStart.Value;
-            todayTotal += worked;
-            weekTotal += worked;
+            // 🔥 퇴근 + 누적 계산은 DB
+            await supabase.Rpc("check_out", new { p_user_id = currentUser.Id });
 
-            await supabase.From<Work>()
-                .Where(x => x.Id == todayWork.Id)
-                .Set(x => x.IsWorking, false)
-                .Set(x => x.TodayTotalSeconds, (long)todayTotal.TotalSeconds)
-                .Set(x => x.WeekTotalSeconds, (long)weekTotal.TotalSeconds)
-                .Set(x => x.LastWorkStart, null)
-                .Set(x => x.CheckoutTime, kstNow)
-                .Update();
+            // 🔥 DB 기준 최신값 다시 로드
+            await LoadTodayWorkAsync();
 
-            await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, false, currentUser, runtimeWorkStart.Value, kstNow);
+            // 🔥 이번 근무 시간 계산 (DB 값 기준)
+            TimeSpan sessionTime = TimeSpan.Zero;
 
-            runtimeWorkStart = null;
+            if (todayWork?.CheckinTime != null && todayWork?.CheckoutTime != null)
+            {
+                sessionTime = todayWork.CheckoutTime.Value
+                            - todayWork.CheckinTime.Value;
+            }
+
+            // 🔥 디스코드 로그에 "이번 근무 시간" 전달
+            await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, false, currentUser, todayWork?.CheckinTime, todayWork?.CheckoutTime);
+
             isCheckedIn = false;
             btnToggleWork.Text = "출근";
             btnToggleWork.BackColor = Color.FromArgb(100, 140, 240);
 
             workTimer.Start();
-
-            if (midnightPendingReset)
-            {
-                midnightPendingReset = false;
-                _ = Task.Run(async () =>
-                {
-                    await Task.Delay(10000);
-                    todayTotal = TimeSpan.Zero;
-                });
-            }
 
             await LoadUserRanksAsync();
 
@@ -377,7 +352,6 @@ namespace Police_Intranet
             {
                 await main.RaiseWorkStatusChangedAsync();
             }
-
         }
 
         private void UpdateWorkTimeLabel()
@@ -397,15 +371,16 @@ namespace Police_Intranet
                 }
             }
 
-            TimeSpan displayToday = todayTotal;
-            TimeSpan displayWeek = weekTotal;
+            TimeSpan displayToday = TimeSpan.FromSeconds(todayWork?.TodayTotalSeconds ?? 0);
 
-            if (isCheckedIn && runtimeWorkStart.HasValue)
+            if (isCheckedIn && todayWork?.LastWorkStart != null)
             {
-                TimeSpan current = GetKstNow() - runtimeWorkStart.Value;
-                displayToday += current;
-                displayWeek += current;
+                DateTime lastStart = todayWork.LastWorkStart.Value;
+
+                // ❗ 변환 하지 않고 그대로 계산
+                displayToday += (GetKstNow() - lastStart);
             }
+            TimeSpan displayWeek = weekTotal;
 
             lblWorkTime.Text = $"일간 근무시간: {(int)displayToday.TotalHours}시간 {displayToday.Minutes}분 {displayToday.Seconds}초";
             lblWeek.Text = $"주간 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
@@ -422,7 +397,6 @@ namespace Police_Intranet
             isCheckedIn = false;
             todayTotal = TimeSpan.Zero;
             weekTotal = TimeSpan.Zero;
-            runtimeWorkStart = null;
             todayWork = null;
 
             workTimer.Stop();
@@ -457,7 +431,6 @@ namespace Police_Intranet
             workTimer.Stop();
 
             isCheckedIn = false;
-            runtimeWorkStart = null;
             todayTotal = TimeSpan.Zero;
             weekTotal = TimeSpan.Zero;
             todayWork = null;

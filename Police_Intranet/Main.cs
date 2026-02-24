@@ -37,6 +37,7 @@ namespace Police_Intranet
         public bool IsLogoutRequested { get; private set; } = false;
 
         public event Func<Task>? WorkStatusChanged;
+        private System.Windows.Forms.Timer userRefreshTimer;
 
         public Main(User loggedInUser, Client client)
         {
@@ -67,6 +68,14 @@ namespace Police_Intranet
         // ⭐ 앱 시작 시 한 번만 초기 데이터 로드
         private async void Main_Load(object sender, EventArgs e)
         {
+            userRefreshTimer = new System.Windows.Forms.Timer();
+            userRefreshTimer.Interval = 3000; // 3초
+            userRefreshTimer.Tick += async (s, ev) =>
+            {
+                await Report.LoadUsersAsync();
+            };
+            userRefreshTimer.Start();
+
             if (Mypage != null)
             {
                 await Mypage.InitializeAsync();
@@ -288,6 +297,13 @@ namespace Police_Intranet
             return false;
         }
 
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            userRefreshTimer?.Stop();
+            userRefreshTimer?.Dispose();
+            base.OnFormClosing(e);
+        }
+
         // 🔥 아이콘(로고) 더블클릭 시 앱 종료 방지
         protected override void WndProc(ref Message m)
         {
@@ -316,7 +332,9 @@ namespace Police_Intranet
                 }
             }
 
+
             base.WndProc(ref m);
+
         }
 
     }

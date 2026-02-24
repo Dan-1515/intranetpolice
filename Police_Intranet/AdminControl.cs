@@ -187,10 +187,10 @@ namespace Police_Intranet
 
             Label lblRiding = new Label()
             {
-                Text = "마쯔다 운행 관리",
+                Text = "맥비 운행 관리",
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
-                Location = new Point(90, 10),
+                Location = new Point(110, 10),
                 AutoSize = true
             };
             panelRiding.Controls.Add(lblRiding);
@@ -198,7 +198,7 @@ namespace Police_Intranet
             lbRidingUsers = new ListBox()
             {
                 Location = new Point(50, lblRiding.Bottom + 10),
-                Size = new Size(230, 120),
+                Size = new Size(270, 120),
                 BackColor = Color.FromArgb(50, 50, 50),
                 ForeColor = Color.White
             };
@@ -862,9 +862,12 @@ namespace Police_Intranet
 
             var resp = await client.From<User>().Get();
 
-            foreach (var u in resp.Models.Where(u => u.IsApproved == true))
+            var sortedUsers = resp.Models
+                .Where(u => u.IsApproved == true)
+                .OrderByDescending(u => u.RpCount); // 🔥 이게 진짜 RP
+
+            foreach (var u in sortedUsers)
             {
-                int rp = int.TryParse(u.RP, out var v) ? v : 0;
                 lbRpReset.Items.Add($"{u.UserId} | {u.Username} | RP {u.RpCount}회");
             }
         }
@@ -1027,62 +1030,7 @@ namespace Police_Intranet
 
         private async void BtnForceAllCheckout_Click(object? sender, EventArgs e)
         {
-            try
-            {
-                DateTime now = MypageControl.GetKstNow();
-
-                // 1️⃣ 근무 중인 work 전부 조회
-                var worksRes = await client
-                    .From<Work>()
-                    .Where(w => w.IsWorking == true)
-                    .Get();
-
-                if (worksRes.Models.Count == 0)
-                {
-                    MessageBox.Show("현재 근무 중인 유저가 없습니다.");
-                    return;
-                }
-
-                foreach (var work in worksRes.Models)
-                {
-                    // 안전장치
-                    if (work.LastWorkStart == null)
-                        continue;
-
-                    int workedSeconds =
-                        (int)(now - work.LastWorkStart.Value).TotalSeconds;
-
-                    // 2️⃣ work 종료 + 시간 누적
-                    await client
-                        .From<Work>()
-                        .Where(w => w.Id == work.Id)
-                        .Set(w => w.IsWorking, false)
-                        .Set(w => w.TodayTotalSeconds, work.TodayTotalSeconds + workedSeconds)
-                        .Set(w => w.WeekTotalSeconds, work.WeekTotalSeconds + workedSeconds)
-                        .Set(w => w.LastWorkStart, null)
-                        .Set(w => w.CheckoutTime, now)
-                        .Update();
-
-                    // 3️⃣ users 근무 상태 종료
-                    await client
-                        .From<User>()
-                        .Where(u => u.Id == work.UserId)
-                        .Set(u => u.IsWorking, false)
-                        .Update();
-
-                    // 5️⃣ 마이페이지 UI 갱신 이벤트
-                    MypageControl.ForceCheckoutEventBus.Raise(work.UserId);
-                }
-
-                MessageBox.Show($"전체 강제퇴근 완료 ({worksRes.Models.Count}명)");
-
-                // 6️⃣ 관리자 리스트 갱신
-                await LoadWorkingUsersAsync();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("전체 강제퇴근 실패: " + ex.Message);
-            }
+            MessageBox.Show("추후 업데이트 예정입니다.", "안내", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
 

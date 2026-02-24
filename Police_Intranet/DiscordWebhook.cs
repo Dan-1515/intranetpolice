@@ -19,6 +19,14 @@ namespace Police_Intranet.Services
             webhookUrl = url ?? throw new ArgumentNullException(nameof(url));
         }
 
+        public static DateTime GetKstNow()
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.UtcNow,
+                TimeZoneInfo.FindSystemTimeZoneById("Korea Standard Time")
+            );
+        }
+
         // ===================== Embed 전송 =====================
         public async Task SendEmbedAsync(string title, string description, int colorHex, string footerText, string imageUrl = null)
         {
@@ -55,41 +63,53 @@ namespace Police_Intranet.Services
         }
 
         // ===================== 출퇴근 로그 전송 =====================
-        
-        public async Task SendWorkLogAsync(int userId, string userName, bool isCheckedIn, User user, DateTime checkInTime, DateTime? checkOutTime)
+
+        public async Task SendWorkLogAsync(int userId, string username, bool isCheckIn, User user, DateTime? inTime, DateTime? outTime)
         {
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            string action = isCheckedIn ? "출근" : "퇴근";
+            string action = isCheckIn ? "출근" : "퇴근";
             string description;
 
-            if (isCheckedIn)
+            // ✅ 출근 로그 (총 출근시간 없음)
+            if (isCheckIn)
             {
                 description =
                     $"**고유번호 : ** {userId}\n\n" +
-                    $"**닉네임 : ** {userName}\n\n" +
+                    $"**닉네임 : ** {username}\n\n" +
                     $"**상태 : ** {action}";
             }
+            // ✅ 퇴근 로그 (총 출근시간 포함)
             else
             {
-                TimeSpan workedTime = checkOutTime.HasValue ? checkOutTime.Value - checkInTime : TimeSpan.Zero;
+                TimeSpan workedTime =
+                    (inTime.HasValue && outTime.HasValue)
+                        ? outTime.Value - inTime.Value
+                        : TimeSpan.Zero;
+
                 string workedTimeText = FormatTimeSpan(workedTime);
 
                 description =
                     $"**고유번호 : ** {userId}\n\n" +
-                    $"**닉네임 : ** {userName}\n\n" +
+                    $"**닉네임 : ** {username}\n\n" +
                     $"**상태 : ** {action}\n\n" +
                     $"**총 출근시간 : ** {workedTimeText}";
             }
 
-            string footer = $"Made By dadev  |  {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-            int color = isCheckedIn ? 0x00FF00 : 0xFF0000;
+            string footer = $"Made By dadev  |  {GetKstNow():yyyy-MM-dd HH:mm:ss}";
+            int color = isCheckIn ? 0x00FF00 : 0xFF0000;
 
-            // ❤️ 디스코드 로고 URL
-            string logoUrl = "https://media.discordapp.net/attachments/1441514593254903858/1468895362248085627/cheese.png";
+            string logoUrl =
+                "https://media.discordapp.net/attachments/1441514593254903858/1468895362248085627/cheese.png";
 
-            await SendEmbedAsync("경찰청 출퇴근 로그", description, color, footer, logoUrl);
+            await SendEmbedAsync(
+                "경찰청 출퇴근 로그",
+                description,
+                color,
+                footer,
+                logoUrl
+            );
         }
 
         // ===================== TimeSpan → 문자열 변환 =====================

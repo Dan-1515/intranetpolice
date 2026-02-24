@@ -56,7 +56,8 @@ namespace Police_Intranet
         private DiscordWebhook reportWebhook;
 
         private System.Windows.Forms.Timer rideTimer;
-        // private System.Windows.Forms.Timer workinguserTimer;
+        private System.Windows.Forms.Timer userRefreshTimer;
+        private System.Windows.Forms.Timer workingUserTimer;
 
         private string selectedMutder = "";
 
@@ -81,6 +82,7 @@ namespace Police_Intranet
             RefreshWorkingUsers();
             RefreshLbUser(); // 탭 전환 후에도 유지 가능하도록 수정
             this.reportWebhook = Webhook;
+            InitWorkingUserTimer();
         }
 
         private void InitializeRpUi()
@@ -121,7 +123,7 @@ namespace Police_Intranet
             FlowLayoutPanel flpRobbery = new FlowLayoutPanel
             {
                 Location = new Point(10, 65),
-                Size = new Size(390, 120),   // 줄바꿈 때문에 Height 증가
+                Size = new Size(550, 120),   // 줄바꿈 때문에 Height 증가
                 AutoSize = false,
                 BackColor = Color.Transparent,
 
@@ -140,6 +142,7 @@ namespace Police_Intranet
                     { "보석상", new List<string> { "보석상" } },
                     { "남부은행", new List<string> { "남부은행" } },
                     { "경털1차", new List<string> { "경털1차" } },
+                    { "경털2차", new List<string> { "경털2차" } }
                 };
 
             string[] robberyNames = robberyData.Keys.ToArray();
@@ -352,7 +355,7 @@ namespace Police_Intranet
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 10F)
             };
-            cbLevel.Items.AddRange(new string[] { "고위/간부직", "일반직", "특공대(SOU)", "타격대(SCP)", "항공팀(ASD)" });
+            cbLevel.Items.AddRange(new string[] { "고위/간부직", "일반직", "특공대(SWAT)", "타격대(SCP)", "항공팀(ASD)" });
             panelRight.Controls.Add(cbLevel);
 
             Label lblRP = new Label
@@ -528,6 +531,17 @@ namespace Police_Intranet
 
             UpdateRightPanelLocation();
             this.Resize += (s, e) => UpdateRightPanelLocation();
+        }
+
+        private void InitWorkingUserTimer()
+        {
+            workingUserTimer = new System.Windows.Forms.Timer();
+            workingUserTimer.Interval = 3000; // 3초마다
+            workingUserTimer.Tick += async (s, e) =>
+            {
+                await LoadUsersAsync();
+            };
+            workingUserTimer.Start();
         }
 
         private async Task LoadRidingUsersAsync()
@@ -911,7 +925,7 @@ namespace Police_Intranet
             { ("경털1차", "묻묻묻더 승"), new Penalty(800_000_000, 120) },
             { ("경털1차", "묻묻묻더 패"), new Penalty(600_000_000, 0) },
         };
-            
+
 
         public class Penalty
         {
@@ -1039,6 +1053,13 @@ namespace Police_Intranet
                             totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
                             totalBailDetention = totalDetention - Peak;
                             break;
+
+                        case "경털2차":
+                            totalFine = 200_000_000L * participantCount;
+                            totalDetention = 30;
+                            totalBailFine = (200_000_000L + (Peak * Bail)) * participantCount;
+                            totalBailDetention = totalDetention - Peak;
+                            break;
                     }
                 }
             }
@@ -1064,8 +1085,15 @@ namespace Police_Intranet
             txtBailDetention.Text = $"{totalBailDetention}분";
         }
 
+        
+
+        private bool isLoadingUsers = false;
+
         public async Task LoadUsersAsync()
         {
+            if (isLoadingUsers) return;
+            isLoadingUsers = true;
+
             try
             {
                 var worksResponse = await SupabaseClient.Instance
@@ -1096,6 +1124,10 @@ namespace Police_Intranet
             catch (Exception ex)
             {
                 MessageBox.Show("유저 목록 로딩 실패: " + ex.Message);
+            }
+            finally
+            {
+                isLoadingUsers = false;
             }
         }
 
