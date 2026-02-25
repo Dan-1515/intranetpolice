@@ -506,8 +506,8 @@ namespace Police_Intranet
             btnClear = new Button
             {
                 Text = "초기화",
-                Size = new Size(280, 30),
-                Location = new Point(10, 475),
+                Size = new Size(90, 30),
+                Location = new Point(200, 535),
                 BackColor = Color.FromArgb(70, 70, 70),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
@@ -526,8 +526,10 @@ namespace Police_Intranet
                 txtBailFine.Clear();
                 txtBailDetention.Clear();
                 txtPerson.Clear();
+                txtPeak.Clear();
+                cbPeak.Checked = false;
             };
-            // rightPanel.Controls.Add(btnClear);
+            rightPanel.Controls.Add(btnClear);
 
             UpdateRightPanelLocation();
             this.Resize += (s, e) => UpdateRightPanelLocation();

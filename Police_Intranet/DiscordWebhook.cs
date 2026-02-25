@@ -97,7 +97,7 @@ namespace Police_Intranet.Services
                     $"**총 출근시간 : ** {workedTimeText}";
             }
 
-            string footer = $"Made By dadev  |  {GetKstNow():yyyy-MM-dd HH:mm:ss}";
+            string footer = $"{GetKstNow():yyyy-MM-dd HH:mm:ss} | Made By dadev";
             int color = isCheckIn ? 0x00FF00 : 0xFF0000;
 
             string logoUrl =
@@ -127,7 +127,7 @@ namespace Police_Intranet.Services
                 $"**상대측 참여 인원 수 : ** {participants}\n\n" +
                 $"**참여 경관 : ** {ParticipantPolice}\n\n";
 
-            string footer = $"Made By dadev  |  {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+            string footer = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | Made By dadev";
             int color = 0x5DADE2;
             // ❤️ 디스코드 로고 URL
             string logoUrl = "https://media.discordapp.net/attachments/1441514593254903858/1468895362248085627/cheese.png";

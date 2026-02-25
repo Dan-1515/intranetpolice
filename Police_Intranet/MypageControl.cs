@@ -93,11 +93,16 @@ namespace Police_Intranet
             else
             {
                 todayTotal = TimeSpan.FromSeconds(todayWork.TodayTotalSeconds);
-                weekTotal = TimeSpan.FromSeconds(todayWork.WeekTotalSeconds);
-                isCheckedIn = todayWork.IsWorking;
 
+                // ✅ 주간 값이 0보다 클 때만 갱신
+                if (todayWork.WeekTotalSeconds > 0)
+                {
+                    weekTotal = TimeSpan.FromSeconds(todayWork.WeekTotalSeconds);
+                }
+
+                isCheckedIn = todayWork.IsWorking;
             }
-            
+
             currentKstDate = GetKstNow().Date;
 
             btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
