@@ -52,6 +52,9 @@ namespace Police_Intranet
         private User loggedInUser;
         private bool isRiding = false;
 
+        private bool isSelecting = false;
+        private bool hasSelection = false;
+
         private readonly DiscordWebhook _reportWebhook;
         private DiscordWebhook reportWebhook;
 
@@ -79,10 +82,13 @@ namespace Police_Intranet
             _ = LoadRidingUsersAsync();
             _ = LoadUsersAsync();
 
-            RefreshWorkingUsers();
             RefreshLbUser(); // 탭 전환 후에도 유지 가능하도록 수정
             this.reportWebhook = Webhook;
             InitWorkingUserTimer();
+            lbUsers.SelectedIndexChanged += (s, e) =>
+            {
+                hasSelection = lbUsers.SelectedItems.Count > 0;
+            };
         }
 
         private void InitializeRpUi()
@@ -538,9 +544,10 @@ namespace Police_Intranet
         private void InitWorkingUserTimer()
         {
             workingUserTimer = new System.Windows.Forms.Timer();
-            workingUserTimer.Interval = 3000; // 3초마다
+            workingUserTimer.Interval = 5000;
             workingUserTimer.Tick += async (s, e) =>
             {
+                if (hasSelection) return;   // 🔥 이 한 줄이 핵심
                 await LoadUsersAsync();
             };
             workingUserTimer.Start();
@@ -1093,6 +1100,7 @@ namespace Police_Intranet
 
         public async Task LoadUsersAsync()
         {
+            if (hasSelection) return;
             if (isLoadingUsers) return;
             isLoadingUsers = true;
 
@@ -1223,57 +1231,6 @@ namespace Police_Intranet
                 MessageBox.Show("보고서 작성 실패\n" + ex.Message);
             }
         }
-        private async Task LoadWorkingUsersAsync()
-        {
-            try
-            {
-                // 1️⃣ work에서 근무중인 user_id 가져오기
-                var workRes = await SupabaseClient.Instance
-                    .From<Work>()
-                    .Filter("is_working", Supabase.Postgrest.Constants.Operator.Equals, true)
-                    .Get();
-
-                var userIds = workRes.Models
-                    .Select(w => w.UserId)
-                    .Distinct()
-                    .ToList();
-
-                if (userIds.Count == 0)
-                {
-                    lbUsers.Items.Clear();
-                    return;
-                }
-
-                // 2️⃣ users에서 해당 유저들만 조회
-                var users = new List<User>();
-
-                foreach (var id in userIds)
-                {
-                    var res = await SupabaseClient.Instance
-                        .From<User>()
-                        .Filter("user_id", Supabase.Postgrest.Constants.Operator.Equals, id)
-                        .Get();
-
-                    if (res.Models != null)
-                        users.AddRange(res.Models);
-                }
-
-
-                if (lbUsers.InvokeRequired)
-                    lbUsers.Invoke(() => UpdateLbUsers(users));
-                else
-                    UpdateLbUsers(users);
-            }
-            catch
-            {
-                // 타이머용 → 조용히 무시
-            }
-        }
-
-        public async void RefreshWorkingUsers()
-        {
-            await LoadWorkingUsersAsync();
-        }
 
         public event Action OnRpUpdated;
 
@@ -1316,6 +1273,14 @@ namespace Police_Intranet
                 e.DrawFocusRectangle();
             };
         }
+        private void lbUsers_MouseDown(object sender, MouseEventArgs e)
+        {
+            isSelecting = true;
+        }
 
+        private void lbUsers_MouseUp(object sender, MouseEventArgs e)
+        {
+            isSelecting = false;
+        }
     }
 }

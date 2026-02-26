@@ -17,6 +17,7 @@ namespace Police_Intranet
         private System.Windows.Forms.Button btnDoubleCal;
         private System.Windows.Forms.Button btnReport;
         private System.Windows.Forms.Button btnSideNotice;
+        private System.Windows.Forms.Button btnWorklog;
         private System.Windows.Forms.Button btnAdmin;
         private System.Windows.Forms.Button btnLogout;
         private System.Windows.Forms.PictureBox picLogo;
@@ -43,6 +44,7 @@ namespace Police_Intranet
             this.btnDoubleCal = new System.Windows.Forms.Button();
             this.btnSideNotice = new System.Windows.Forms.Button();
             this.btnReport = new System.Windows.Forms.Button();
+            this.btnWorklog = new System.Windows.Forms.Button();
             this.btnAdmin = new System.Windows.Forms.Button();
             this.btnLogout = new System.Windows.Forms.Button();
 
@@ -96,6 +98,7 @@ namespace Police_Intranet
             }
 
             SetupButton(this.btnAdmin, "🛠 관리자", this.btnAdmin_Click);
+            SetupButton(this.btnWorklog, "📋 출근시간 계산기", this.btnWorklog_Click);
             SetupButton(this.btnReport, "📑 보고서&&맥비", this.btnReport_Click);
             SetupButton(this.btnSideNotice, "🚨 사이드 공지", this.btnSideNotice_Click);
             SetupButton(this.btnDoubleCal, "⚖︎ 묻더 계산기", this.btnDoubleCal_Click);
@@ -105,6 +108,7 @@ namespace Police_Intranet
 
             // 버튼 역순 추가
             this.buttonsPanel.Controls.Add(this.btnAdmin);
+            this.buttonsPanel.Controls.Add(this.btnWorklog);
             this.buttonsPanel.Controls.Add(this.btnReport);
             this.buttonsPanel.Controls.Add(this.btnSideNotice);
             this.buttonsPanel.Controls.Add(this.btnDoubleCal);
@@ -157,6 +161,7 @@ namespace Police_Intranet
             btnDoubleCal.Visible = false;
             btnReport.Visible = true;
             btnAdmin.Visible = true;
+            btnWorklog.Visible = true;
             btnLogout.Visible = true;
         }
 

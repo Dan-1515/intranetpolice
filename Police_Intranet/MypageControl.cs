@@ -85,23 +85,15 @@ namespace Police_Intranet
             {
                 todayTotal = TimeSpan.Zero;
                 isCheckedIn = false;
-
-                // 오늘 기록 없으면 → 주간 최신값 로드
-                await LoadWeekFromLatestRowAsync();
-
             }
             else
             {
                 todayTotal = TimeSpan.FromSeconds(todayWork.TodayTotalSeconds);
-
-                // ✅ 주간 값이 0보다 클 때만 갱신
-                if (todayWork.WeekTotalSeconds > 0)
-                {
-                    weekTotal = TimeSpan.FromSeconds(todayWork.WeekTotalSeconds);
-                }
-
                 isCheckedIn = todayWork.IsWorking;
             }
+
+            // 🔥 주간 근무시간은 무조건 최신 row 기준
+            await LoadWeekFromLatestRowAsync();
 
             currentKstDate = GetKstNow().Date;
 
@@ -363,32 +355,43 @@ namespace Police_Intranet
         {
             DateTime kstNow = GetKstNow();
 
+            // 날짜 변경 감지
             if (kstNow.Date != currentKstDate)
             {
                 currentKstDate = kstNow.Date;
 
-                if (isCheckedIn)
-                    midnightPendingReset = true;
-                else
+                if (!isCheckedIn)
                 {
                     todayTotal = TimeSpan.Zero;
-                    midnightPendingReset = false;
                 }
+                // 🔥 주간은 절대 리셋하지 않음
             }
 
-            TimeSpan displayToday = TimeSpan.FromSeconds(todayWork?.TodayTotalSeconds ?? 0);
+            // =========================
+            // 일간 계산
+            // =========================
+            TimeSpan displayToday =
+                TimeSpan.FromSeconds(todayWork?.TodayTotalSeconds ?? 0);
+
+            // =========================
+            // 주간 계산 (🔥 중요)
+            // =========================
+            TimeSpan displayWeek =
+                TimeSpan.FromSeconds(todayWork?.WeekTotalSeconds ?? weekTotal.TotalSeconds);
 
             if (isCheckedIn && todayWork?.LastWorkStart != null)
             {
-                DateTime lastStart = todayWork.LastWorkStart.Value;
+                TimeSpan running = kstNow - todayWork.LastWorkStart.Value;
 
-                // ❗ 변환 하지 않고 그대로 계산
-                displayToday += (GetKstNow() - lastStart);
+                displayToday += running;
+                displayWeek += running; // 🔥 이 줄이 핵심
             }
-            TimeSpan displayWeek = weekTotal;
 
-            lblWorkTime.Text = $"일간 근무시간: {(int)displayToday.TotalHours}시간 {displayToday.Minutes}분 {displayToday.Seconds}초";
-            lblWeek.Text = $"주간 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
+            lblWorkTime.Text =
+                $"일간 근무시간: {(int)displayToday.TotalHours}시간 {displayToday.Minutes}분 {displayToday.Seconds}초";
+
+            lblWeek.Text =
+                $"주간 근무시간: {(int)displayWeek.TotalHours}시간 {displayWeek.Minutes}분 {displayWeek.Seconds}초";
         }
 
         public async Task ForceCheckoutIfNeededAsync()

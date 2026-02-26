@@ -28,6 +28,8 @@ namespace Police_Intranet
 
         public DoubleCalControl DoubleCal { get; private set; }
 
+        public WorklogControl Worklog { get; private set; }
+
         public AdminControl Admin { get; private set; }
 
         private Label lblVersion;
@@ -56,6 +58,7 @@ namespace Police_Intranet
             DoubleCal = new DoubleCalControl();
             Cal = new CalculatorControl();
             SideNotice = new SideNoticeControl();
+            Worklog = new WorklogControl();
             Admin = new AdminControl(_client, this, Mypage);
 
             if (!DesignMode)
@@ -197,6 +200,13 @@ namespace Police_Intranet
                 LoadControl(Report);
         }
 
+        private void btnWorklog_Click(object sender, EventArgs e)
+        {
+            if (_currentUser != null)
+            {
+                LoadControl(Worklog);
+            }
+        }
 
         private async void btnAdmin_Click(object sender, EventArgs e)
         {
