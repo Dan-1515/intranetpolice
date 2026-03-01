@@ -99,12 +99,6 @@ namespace Police_Intranet
 
             btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
 
-            // 출근 직후 UI 시간 보정
-            if (todayWork != null && todayWork.IsWorking)
-            {
-                todayWork.LastWorkStart = GetKstNow();
-            }
-
             UpdateWorkTimeLabel();
         }
 
@@ -270,84 +264,141 @@ namespace Police_Intranet
 
         }
 
+        private void ApplyWorkStateFromDb()
+        {
+            isCheckedIn = todayWork?.IsWorking == true;
+
+            btnToggleWork.Text = isCheckedIn ? "퇴근" : "출근";
+            btnToggleWork.BackColor = isCheckedIn
+                ? Color.FromArgb(150, 50, 50)
+                : Color.FromArgb(100, 140, 240);
+
+            if (isCheckedIn)
+                workTimer.Start();
+            else
+                workTimer.Stop();
+        }
+
+        private bool isProcessing = false;
+
         private async Task ToggleWorkAsync()
         {
-            // UI 기준 시간만 필요 (DB에는 절대 직접 안 넣음)
-            DateTime now = GetKstNow();
+            if (isProcessing) return;
+            isProcessing = true;
+            btnToggleWork.Enabled = false;
 
-            if (!isCheckedIn)
+            try
             {
-                // ======================
-                // 출근 처리 (DB가 전부 담당)
-                // ======================
-                isCheckedIn = true;
-                btnToggleWork.Text = "퇴근";
-                btnToggleWork.BackColor = Color.FromArgb(150, 50, 50);
-                workTimer.Start();
+                DateTime now = GetKstNow();
 
-                // 🔥 출근 시간/누적 계산은 DB 함수만 호출
-                await supabase.Rpc("check_in", new { p_user_id = currentUser.Id });
-
-                // DB 최신 상태 다시 로드
+                // 🔒 현재 DB 상태 1회 로드
                 await LoadTodayWorkAsync();
+                bool dbIsWorking = todayWork?.IsWorking == true;
 
-                // 디스코드 로그 (출근은 시간 계산 불필요)
-                await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, true, currentUser, null, null);
+                if (!dbIsWorking)
+                {
+                    // ▶ 출근
+                    await supabase.Rpc("check_in", new
+                    {
+                        p_user_id = currentUser.Id
+                    });
+
+                    // ✅ 출근 후 DB 기준 상태 재로드 (필수)
+                    await LoadTodayWorkAsync();
+
+                    if (todayWork?.IsWorking == true)
+                    {
+                        ApplyUiCheckedIn();
+
+                        await workWebhook.SendWorkLogAsync(
+                            currentUser.UserId ?? 0,
+                            currentUser.Username,
+                            true,
+                            currentUser,
+                            null,
+                            null
+                        );
+                    }
+                }
+                else
+                {
+                    // ▶ 퇴근
+                    await supabase.Rpc("check_out", new
+                    {
+                        p_user_id = currentUser.Id,
+                        p_checkout_time = now
+                    });
+
+                    // ✅ 퇴근 후 DB 기준 상태 재로드
+                    await LoadTodayWorkAsync();
+
+                    if (todayWork?.IsWorking == false)
+                    {
+                        ApplyUiCheckedOut();
+
+                        await workWebhook.SendWorkLogAsync(
+                            currentUser.UserId ?? 0,
+                            currentUser.Username,
+                            false,
+                            currentUser,
+                            todayWork?.CheckinTime,
+                            todayWork?.CheckoutTime
+                        );
+                    }
+                }
+
+                UpdateWorkTimeLabel();
+                await LoadUserRanksAsync();
             }
-            else
+            finally
             {
-                // ======================
-                // 퇴근 처리
-                // ======================
-                await ForceCheckoutInternalAsync(now);
-            }
-
-            
-            UpdateWorkTimeLabel();
-            await LoadUserRanksAsync();
-
-            if (this.ParentForm is Main main)
-            {
-                await main.RaiseWorkStatusChangedAsync();
+                isProcessing = false;
+                btnToggleWork.Enabled = true;
             }
         }
 
-        private async Task ForceCheckoutInternalAsync(DateTime kstNow)
+        private void ApplyUiCheckedIn()
         {
+            isCheckedIn = true;
+            btnToggleWork.Text = "퇴근";
+            btnToggleWork.BackColor = Color.FromArgb(150, 50, 50);
+            workTimer.Start();
+        }
+
+        private void ApplyUiCheckedOut()
+        {
+            isCheckedIn = false;
+            btnToggleWork.Text = "출근";
+            btnToggleWork.BackColor = Color.FromArgb(100, 140, 240);
             workTimer.Stop();
+        }
 
-            if (!isCheckedIn)
-                return;
 
-            // 🔥 퇴근 + 누적 계산은 DB
-            await supabase.Rpc("check_out", new { p_user_id = currentUser.Id });
-
-            // 🔥 DB 기준 최신값 다시 로드
-            await LoadTodayWorkAsync();
-
-            // 🔥 이번 근무 시간 계산 (DB 값 기준)
-            TimeSpan sessionTime = TimeSpan.Zero;
-
-            if (todayWork?.CheckinTime != null && todayWork?.CheckoutTime != null)
+        private async Task ForceCheckoutInternalAsync(DateTime checkoutTime, bool sendLog)
+        {
+            await supabase.Rpc("check_out", new
             {
-                sessionTime = todayWork.CheckoutTime.Value
-                            - todayWork.CheckinTime.Value;
-            }
+                p_user_id = currentUser.Id,
+                p_checkout_time = checkoutTime
+            });
 
-            // 🔥 디스코드 로그에 "이번 근무 시간" 전달
-            await workWebhook?.SendWorkLogAsync(currentUser.UserId ?? 0, currentUser.Username, false, currentUser, todayWork?.CheckinTime, todayWork?.CheckoutTime);
+            await LoadTodayWorkAsync();
 
             isCheckedIn = false;
             btnToggleWork.Text = "출근";
             btnToggleWork.BackColor = Color.FromArgb(100, 140, 240);
+            workTimer.Stop();
 
-            workTimer.Start();
-
-            await LoadUserRanksAsync();
-
-            if (this.ParentForm is Main main)
+            if (sendLog)
             {
-                await main.RaiseWorkStatusChangedAsync();
+                await workWebhook.SendWorkLogAsync(
+                    currentUser.UserId ?? 0,
+                    currentUser.Username,
+                    false,
+                    currentUser,
+                    todayWork?.CheckinTime,
+                    checkoutTime
+                );
             }
         }
 
@@ -379,12 +430,15 @@ namespace Police_Intranet
             TimeSpan displayWeek =
                 TimeSpan.FromSeconds(todayWork?.WeekTotalSeconds ?? weekTotal.TotalSeconds);
 
-            if (isCheckedIn && todayWork?.LastWorkStart != null)
+            if (isCheckedIn && todayWork?.CheckinTime != null)
             {
-                TimeSpan running = kstNow - todayWork.LastWorkStart.Value;
+                TimeSpan running = kstNow - todayWork.CheckinTime.Value;
+
+                if (running < TimeSpan.Zero)
+                    running = TimeSpan.Zero;
 
                 displayToday += running;
-                displayWeek += running; // 🔥 이 줄이 핵심
+                displayWeek += running;
             }
 
             lblWorkTime.Text =
@@ -397,7 +451,7 @@ namespace Police_Intranet
         public async Task ForceCheckoutIfNeededAsync()
         {
             if (isCheckedIn)
-                await ForceCheckoutInternalAsync(GetKstNow());
+                await ForceCheckoutInternalAsync(GetKstNow(), false);
         }
 
         public async Task UpdateUserAsync(User user)
@@ -686,7 +740,7 @@ namespace Police_Intranet
             if (currentUser == null) return;
             if (currentUser.Id != userId) return;
 
-            await ForceCheckoutInternalAsync(GetKstNow());
+            await ForceCheckoutInternalAsync(GetKstNow(), false);
         }
 
         public async Task ApplyForceCheckoutAsync()
