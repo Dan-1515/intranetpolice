@@ -1,6 +1,6 @@
 ﻿namespace Police_Intranet
 {
-    partial class AdminControl
+    partial class Admin
     {
         /// <summary> 
         /// 필수 디자이너 변수입니다.

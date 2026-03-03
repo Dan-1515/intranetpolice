@@ -88,7 +88,7 @@ namespace Police_Intranet
             }
             else
             {
-                todayTotal = TimeSpan.FromSeconds(todayWork.TodayTotalSeconds);
+                todayTotal = TimeSpan.FromSeconds((double)todayWork.TodayTotalSeconds);
                 isCheckedIn = todayWork.IsWorking;
             }
 
@@ -122,7 +122,7 @@ namespace Police_Intranet
             var latest = res.Models.FirstOrDefault();
             if (latest != null)
             {
-                weekTotal = TimeSpan.FromSeconds(latest.WeekTotalSeconds);
+                weekTotal = TimeSpan.FromSeconds((double)latest.WeekTotalSeconds);
             }
         }
 
@@ -511,7 +511,7 @@ namespace Police_Intranet
             {
                 // 🔹 유저 정보
                 var userRes = await supabase.From<User>()
-                    .Select("id, username, rp_count, IsApproved")
+                    .Select("id, username, rp_count, is_approved")
                     .Get();
 
                 var users = userRes.Models
@@ -561,7 +561,7 @@ namespace Police_Intranet
                         var user = users.FirstOrDefault(u => u.Id == rank.UserId);
                         if (user == null) continue;
 
-                        TimeSpan ts = TimeSpan.FromSeconds(rank.WeekSeconds);
+                        TimeSpan ts = TimeSpan.FromSeconds((double)rank.WeekSeconds);
                         string text = $"{user.Username} {(int)ts.TotalHours}시간 {ts.Minutes:D2}분";
 
                         bool isMe = user.Id == currentUser.Id;
@@ -575,7 +575,7 @@ namespace Police_Intranet
                         int myIndex = allWorkRanks.FindIndex(w => w.UserId == me.Id);
                         if (myIndex >= 10)
                         {
-                            TimeSpan ts = TimeSpan.FromSeconds(allWorkRanks[myIndex].WeekSeconds);
+                            TimeSpan ts = TimeSpan.FromSeconds((double)allWorkRanks[myIndex].WeekSeconds);
                             string text = $"{me.Username} {(int)ts.TotalHours}시간 {ts.Minutes:D2}분";
 
                             workRankPanel.Controls.Add(
@@ -735,13 +735,13 @@ namespace Police_Intranet
             }
         }
 
-        private async void HandleForceCheckout(int userId)
-        {
-            if (currentUser == null) return;
-            if (currentUser.Id != userId) return;
+        // private async void HandleForceCheckout(int userId)
+        //{
+            //if (currentUser == null) return;
+            //if (currentUser.Id != userId) return;
 
-            await ForceCheckoutInternalAsync(GetKstNow(), false);
-        }
+            //await ForceCheckoutInternalAsync(GetKstNow(), false);
+        //}
 
         public async Task ApplyForceCheckoutAsync()
         {

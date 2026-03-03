@@ -30,7 +30,7 @@ namespace Police_Intranet
 
         public WorklogControl Worklog { get; private set; }
 
-        public AdminControl Admin { get; private set; }
+        public Admin Admin { get; private set; }
 
         private Label lblVersion;
         private DiscordWebhook reportWebhook;
@@ -59,7 +59,7 @@ namespace Police_Intranet
             Cal = new CalculatorControl();
             SideNotice = new SideNoticeControl();
             Worklog = new WorklogControl();
-            Admin = new AdminControl(_client, this, Mypage);
+            Admin = new Admin(_client, this, Mypage);
 
             if (!DesignMode)
                 InitializeVersionLabel();

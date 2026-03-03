@@ -1,7 +1,8 @@
-﻿using System;
-using System.Windows.Forms;
-using Police_Intranet.Models;
+﻿using Police_Intranet.Models;
+using Police_Intranet.Services;
 using Supabase;
+using System;
+using System.Windows.Forms;
 
 namespace Police_Intranet
 {
@@ -23,6 +24,7 @@ namespace Police_Intranet
 
                 if (client == null)
                     throw new Exception("Supabase Client 인스턴스가 null입니다.");
+                Police_Intranet.Services.ErrorLogger.Initialize(WebhookUrls.ErrorLog);
             }
             catch (Exception ex)
             {

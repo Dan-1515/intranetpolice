@@ -11,7 +11,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace Police_Intranet
 {
-    public partial class AdminControl : UserControl
+    public partial class Admin : UserControl
     {
         private Supabase.Client client;
 
@@ -45,7 +45,7 @@ namespace Police_Intranet
 
         private int selectedPk = -1;
 
-        public AdminControl(Supabase.Client supabaseClient, Main main, MypageControl mypageControl)
+        public Admin(Supabase.Client supabaseClient, Main main, MypageControl mypageControl)
         {
             this.client = supabaseClient ?? throw new ArgumentNullException(nameof(supabaseClient));
 
@@ -670,7 +670,7 @@ namespace Police_Intranet
                              .OrderByDescending(w => w.WeekTotalSeconds))
                 {
                     var user = userDict[work.UserId];
-                    TimeSpan t = TimeSpan.FromSeconds(work.WeekTotalSeconds);
+                    TimeSpan t = TimeSpan.FromSeconds((double)work.WeekTotalSeconds);
 
                     lbTimes.Items.Add(
                         $"{user.UserId} | {user.Username} | {(int)t.TotalHours}시간 {t.Minutes}분 {t.Seconds}초"
@@ -1026,6 +1026,18 @@ namespace Police_Intranet
             MessageBox.Show("강제퇴근 처리 완료");
 
             await LoadWorkingUsersAsync();
+        }
+
+        public static class ForceCheckoutEventBus
+        {
+            // 이벤트 구독자에게 int(userId)를 전달
+            public static event Action<int>? OnForceCheckout;
+
+            // 이벤트 호출
+            public static void Raise(int userId)
+            {
+                OnForceCheckout?.Invoke(userId);
+            }
         }
 
         private async void BtnForceAllCheckout_Click(object? sender, EventArgs e)

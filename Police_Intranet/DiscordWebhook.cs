@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Police_Intranet.Models; // User 모델 참조
+using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using Police_Intranet.Models; // User 모델 참조
 
 namespace Police_Intranet.Services
 {
@@ -133,6 +133,30 @@ namespace Police_Intranet.Services
             string logoUrl = "https://media.discordapp.net/attachments/1441514593254903858/1468895362248085627/cheese.png";
             await SendEmbedAsync("경찰청 RP 보고서", description, color, footer, logoUrl);
         }
+        public async Task SendMessageAsync(string message)
+        {
+            try
+            {
+                var payload = new
+                {
+                    content = message
+                };
 
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await httpClient.PostAsync(webhookUrl, content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorText = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"웹훅 전송 실패: {response.StatusCode}\n{errorText}");
+                }
+            }
+            catch
+            {
+                // 웹훅 실패해도 앱 죽지 않게
+            }
+        }
     }
 }

@@ -61,7 +61,7 @@ namespace Police_Intranet
         {
             if (string.IsNullOrWhiteSpace(txtLogs.Text))
             {
-                MessageBox.Show("로그를 붙여넣어 주세요.");
+                MessageBox.Show("출근/퇴근 로그를 넣어 주세요.");
                 return;
             }
 

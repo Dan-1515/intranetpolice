@@ -1,4 +1,5 @@
-﻿namespace Police_Intranet
+﻿
+namespace Police_Intranet
 {
     partial class MypageControl
     {
@@ -16,7 +17,7 @@
             if (disposing)
             {
                 // 🔥 이벤트 해제 (가장 중요)
-                ForceCheckoutEventBus.OnForceCheckout -= HandleForceCheckout;
+                Admin.ForceCheckoutEventBus.OnForceCheckout -= HandleForceCheckout;
 
                 // 🔥 타이머 정리
                 if (workTimer != null)
@@ -32,6 +33,11 @@
             base.Dispose(disposing);
         }
 
+        private void HandleForceCheckout(int obj)
+        {
+            throw new NotImplementedException();
+        }
+
 
         #region Component Designer generated code
 
@@ -41,10 +47,16 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
-            this.Dock = System.Windows.Forms.DockStyle.Fill;
+            SuspendLayout();
+            // 
+            // MypageControl
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.FromArgb(30, 30, 30);
+            Name = "MypageControl";
+            Size = new Size(1487, 756);
+            ResumeLayout(false);
             // UserControl은 ClientSize와 Text 속성을 사용하지 않음
         }
 

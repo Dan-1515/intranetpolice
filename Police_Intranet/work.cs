@@ -17,10 +17,10 @@ namespace Police_Intranet.Models
         public String Date { get; set; }
 
         [Column("today_total_seconds")]
-        public long TodayTotalSeconds { get; set; }
+        public long? TodayTotalSeconds { get; set; }
 
         [Column("week_total_seconds")]
-        public long WeekTotalSeconds { get; set; }
+        public long? WeekTotalSeconds { get; set; }
 
         [Column("last_work_start")]
         public DateTime? LastWorkStart { get; set; }

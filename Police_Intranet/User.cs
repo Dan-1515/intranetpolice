@@ -72,8 +72,8 @@ namespace Police_Intranet.Models
         public bool? IsAdmin { get; set; }
 
         // Postgres는 보통 소문자 컬럼명을 씁니다. DB가 "isapproved"라면 아래처럼 수정
-        [Column("IsApproved")]
-        [JsonProperty("isapproved")]
+        [Column("is_approved")]
+        [JsonProperty("is_approved")]
         public bool? IsApproved { get; set; }
 
         // DB가 "isriding"이라면 아래처럼 수정
@@ -91,7 +91,7 @@ namespace Police_Intranet.Models
 
         [Column("rp_count")]
         [JsonProperty("rp_count")]
-        public int RpCount { get; set; }
+        public int? RpCount { get; set; }
 
         public User GetWeekResetCopy()
         {
