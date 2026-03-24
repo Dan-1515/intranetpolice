@@ -29,6 +29,7 @@ namespace Police_Intranet
         private TextBox txtPeak;
 
         private CheckBox cbPeak;
+        private CheckBox cbUnPeak;
 
         private ListBox lbUser;
         private ListBox lbUsers;
@@ -59,7 +60,6 @@ namespace Police_Intranet
         private DiscordWebhook reportWebhook;
 
         private System.Windows.Forms.Timer rideTimer;
-        private System.Windows.Forms.Timer userRefreshTimer;
         private System.Windows.Forms.Timer workingUserTimer;
 
         private string selectedMutder = "";
@@ -76,7 +76,7 @@ namespace Police_Intranet
             mypageControl = mypage;
 
             rideTimer = new System.Windows.Forms.Timer();
-            rideTimer.Interval = 3000; // 3초마다 갱신
+            rideTimer.Interval = 10000; // 10초마다 갱신
             rideTimer.Tick += async (s, e) => await LoadRidingUsersAsync();
             rideTimer.Start();
             _ = LoadRidingUsersAsync();
@@ -786,7 +786,8 @@ namespace Police_Intranet
             };
             txtPeak.TextChanged += (s, e) =>
             {
-                UpdateFineAndDetention();  // 수 바뀌면 자동 계산
+
+                UpdateFineAndDetention();
             };
 
             cbPeak = new CheckBox
@@ -795,12 +796,42 @@ namespace Police_Intranet
                 Location = new Point(10, y + 50),
                 ForeColor = Color.White,
                 BackColor = Color.Transparent,
-                Font = new Font("Segoe UI", 10F, FontStyle.Regular)
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+                AutoSize = false,
+                Size = new Size(60, 25),
+                CheckAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.MiddleLeft
             };
+            cbPeak.Width = TextRenderer.MeasureText(cbPeak.Text, cbPeak.Font).Width + 20;
             rightPanel.Controls.Add(cbPeak);
             cbPeak.CheckedChanged += (s, e) =>
             {
+                if (cbPeak.Checked)
+                    cbUnPeak.Checked = false;
+
                 UpdateFineAndDetention();  // 체크 시 자동 계산
+            };
+
+            cbUnPeak = new CheckBox
+            {
+                Text = "비피크",
+                Location = new Point(70, y + 50),
+                ForeColor = Color.White,
+                BackColor = Color.Transparent,
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+                AutoSize = false,
+                Size = new Size(80, 25),
+                CheckAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+            cbUnPeak.Width = TextRenderer.MeasureText(cbUnPeak.Text, cbUnPeak.Font).Width + 30;
+            rightPanel.Controls.Add(cbUnPeak);
+            cbUnPeak.CheckedChanged += (s, e) =>
+            {
+                if (cbUnPeak.Checked)
+                    cbPeak.Checked = false;
+
+                UpdateFineAndDetention();
             };
         }
 
@@ -965,6 +996,7 @@ namespace Police_Intranet
             long Bail = 3_000_000L;
 
             bool isPeak = cbPeak.Checked;
+            bool isUnPeak = cbUnPeak.Checked;
             int bailDetentionBase = isPeak ? 5 : 10;
             int BailPerMinute = 500_000;
 
@@ -972,6 +1004,11 @@ namespace Police_Intranet
             int.TryParse(txtPeak.Text.Trim(), out Peak);
             if (Peak < 0)
                 Peak = 0;
+
+            int Unpeak = 0;
+            int.TryParse(txtPeak.Text.Trim(), out Unpeak);
+            if (Unpeak < 0)
+                Unpeak = 0;
 
             int participantCount = 1;
             if (!int.TryParse(txtPerson.Text.Trim(), out participantCount) || participantCount < 1)
@@ -1088,13 +1125,26 @@ namespace Police_Intranet
                 totalBailFine += reducedMinutes * 3_000_000L * participantCount;
             }
 
+            if (isUnPeak)
+            {
+                int originalDetention = totalDetention;
+
+                // 피크 체크 시 보석 구금 10분 고정
+                totalBailDetention = 10;
+
+                int reducedMinutes = originalDetention - 10;
+                if (reducedMinutes < 0)
+                    reducedMinutes = 0;
+
+                // 줄어든 분 × 300만원 × 인원수
+                totalBailFine += reducedMinutes * 3_000_000L * participantCount;
+            }
+
             txtFine.Text = $"{totalFine:N0}원";
             txtDetention.Text = $"{totalDetention}분";
             txtBailFine.Text = $"{totalBailFine:N0}원";
             txtBailDetention.Text = $"{totalBailDetention}분";
         }
-
-        
 
         private bool isLoadingUsers = false;
 

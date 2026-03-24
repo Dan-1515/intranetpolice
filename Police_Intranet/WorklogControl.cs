@@ -11,6 +11,7 @@ namespace Police_Intranet
     {
         private TextBox txtLogs;
         private Button btnCalculate;
+        private Button btnClear;
 
         public WorklogControl()
         {
@@ -27,7 +28,7 @@ namespace Police_Intranet
             {
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical,
-                Font = new Font("Consolas", 10),
+                Font = new Font("Consolas", 11),
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(45, 45, 45),
                 BorderStyle = BorderStyle.FixedSingle,
@@ -48,12 +49,27 @@ namespace Police_Intranet
                 Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
 
                 Dock = DockStyle.None,      // ❌ Dock 해제
-                Location = new Point(180, txtLogs.Bottom + 12)
+                Location = new Point(120, txtLogs.Bottom + 12)
             };
 
             btnCalculate.Click += BtnCalculate_Click;
 
+            btnClear = new Button
+            {
+                Text = "로그 초기화",
+                Width = 130,
+                Height = 40,
+                BackColor = Color.FromArgb(160, 60, 60),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9.5f, FontStyle.Bold),
+                Dock = DockStyle.None,
+                Location = new Point(btnCalculate.Right + 20, txtLogs.Bottom + 12)
+            };
+            btnClear.Click += BtnClear_Click;
+
             Controls.Add(btnCalculate);
+            Controls.Add(btnClear);
             Controls.Add(txtLogs);
         }
 
@@ -66,6 +82,21 @@ namespace Police_Intranet
             }
 
             CalculateAndShow(txtLogs.Text);
+        }
+
+        private void BtnClear_Click(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show(
+                "로그를 모두 삭제하시겠습니까?",
+                "확인",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                txtLogs.Clear();
+            }
+
         }
 
         // =========================

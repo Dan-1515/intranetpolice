@@ -37,7 +37,8 @@ namespace Police_Intranet
         private Button btnCopy;
         private Button btnClear;
 
-        private CheckBox chkNewbie;
+        private CheckBox chkPeak;
+        private CheckBox chkUnpeak;
 
         // 선택된 죄목을 저장하는 HashSet (중복 방지 및 빠른 토글)
         // private System.Collections.Generic.HashSet<string> selectedCrimes = new System.Collections.Generic.HashSet<string>();
@@ -170,7 +171,7 @@ namespace Police_Intranet
             rightPanel.Controls.Add(txtSelectedCrimes);
 
             // 뉴비 체크박스
-            chkNewbie = new CheckBox
+            chkPeak = new CheckBox
             {
                 Text = "피크",
                 Font = new Font("Segoe UI", 10F, FontStyle.Regular),
@@ -180,8 +181,8 @@ namespace Police_Intranet
                 Checked = false,
                 BackColor = Color.Transparent
             };
-            // rightPanel.Controls.Add(chkNewbie);
-            chkNewbie.CheckedChanged += (s, e) =>
+            rightPanel.Controls.Add(chkPeak);
+            chkPeak.CheckedChanged += (s, e) =>
             {
                 UpdateFineAndDetention(); // 상태가 바뀌면 다시 계산
                 UpdateSelectedCrimesDisplay();
@@ -304,7 +305,7 @@ namespace Police_Intranet
             btnClear.FlatAppearance.BorderColor = Color.FromArgb(100, 100, 100);
             btnClear.Click += (s, e) =>
             {
-                chkNewbie.Checked = false;
+                chkPeak.Checked = false;
                 // 모든 버튼 초기화
                 foreach (Control ctrl in mainPanel.Controls)
                 {
@@ -383,11 +384,9 @@ namespace Police_Intranet
             const int BAIL_PER_MINUTE = 3_000_000;
             const int BAIL_BASE_DETENTION = 10;
 
-            bool isPeak = chkNewbie.Checked;      // 피크 체크
+            bool isPeak = chkPeak.Checked;      // 피크 체크
             int bailDetentionBase = isPeak ? 5 : 10;
             int BailPerMinute = 3_000_000;
-
-
 
             foreach (var crime in selectedCrimes)
             {
@@ -469,15 +468,17 @@ namespace Police_Intranet
 
             if (totalDetention > MAX_DETENTION)
                 totalDetention = MAX_DETENTION;
-            
-            int reducedMinutes = totalDetention > BAIL_BASE_DETENTION
-                ? totalDetention - BAIL_BASE_DETENTION
-                : 0;
 
-            long totalBailFine = totalFine + (long)reducedMinutes * BAIL_PER_MINUTE;
-            if (chkNewbie.Checked)
+            long totalBailFine = totalFine;
+
+            if (chkPeak.Checked)
             {
-                totalBailFine += 45_000_000;
+                int reducedMinutes = totalBailDetention - 5; // 피크 기준 5분
+
+                if (reducedMinutes < 0)
+                    reducedMinutes = 0;
+
+                totalBailFine += (long)reducedMinutes * 3_000_000L;
             }
 
             // 벌금은 원화 3자리 콤마 포맷 + "원"

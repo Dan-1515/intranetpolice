@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Police_Intranet.Models;
 using Police_Intranet.Services;
 
 namespace Police_Intranet.Services
@@ -32,6 +33,16 @@ namespace Police_Intranet.Services
             {
                 // 🔥 웹훅 실패해도 앱 죽지 않게
             }
+        }
+
+        internal static async Task LogValueAsync(string v1, string v2, Work todayWork)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static async Task LogValueAsync(string v1, string v2, DateTime? checkinTime)
+        {
+            throw new NotImplementedException();
         }
     }
 }

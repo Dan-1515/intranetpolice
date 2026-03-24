@@ -658,19 +658,25 @@ namespace Police_Intranet
                     .From<Work>()
                     .Get();
 
-                var latestWorks = workResp.Models
+                // 👉 유저별 가장 큰 week_total_seconds 가져오기
+                var weekTotals = workResp.Models
                     .GroupBy(w => w.UserId)
                     .Select(g => g
-                        .OrderByDescending(w => w.Date) // 또는 CreatedAt
+                        .OrderByDescending(w => w.Date) // 최신 날짜
                         .First())
+                    .Select(w => new
+                    {
+                        UserId = w.UserId,
+                        TotalSeconds = w.WeekTotalSeconds ?? 0
+                    })
                     .ToList();
 
-                foreach (var work in latestWorks
+                foreach (var item in weekTotals
                              .Where(w => userDict.ContainsKey(w.UserId))
-                             .OrderByDescending(w => w.WeekTotalSeconds))
+                             .OrderByDescending(w => w.TotalSeconds))
                 {
-                    var user = userDict[work.UserId];
-                    TimeSpan t = TimeSpan.FromSeconds((double)work.WeekTotalSeconds);
+                    var user = userDict[item.UserId];
+                    TimeSpan t = TimeSpan.FromSeconds((double)item.TotalSeconds);
 
                     lbTimes.Items.Add(
                         $"{user.UserId} | {user.Username} | {(int)t.TotalHours}시간 {t.Minutes}분 {t.Seconds}초"
@@ -679,10 +685,11 @@ namespace Police_Intranet
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"주간 근무 시간 로드 실패: {ex.Message}");
+                MessageBox.Show($"주간 근무시간 로드 실패 : {ex.Message}");
             }
         }
 
+        // ─ 전체 유저 주간 초기화 ─
         private async Task ResetWeekTimeAsync()
         {
             var result = MessageBox.Show(
@@ -697,33 +704,37 @@ namespace Police_Intranet
 
             try
             {
-                var resp = await client.From<Work>().Get();
+                // 🔥 한 번에 전체 초기화
+                await client.Rpc("reset_week_total", new { });
 
-                foreach (var work in resp.Models)
-                {
-                    work.WeekTotalSeconds = 0;
-
-                    await client
-                        .From<Work>()
-                        .Where(w => w.UserId == work.UserId)
-                        .Update(work);
-                }
-
+                // UI 갱신
                 await LoadWeekTimesAsync();
-                await main.Mypage.LoadUserRanksAsync();
 
                 if (main?.Mypage != null)
+                {
+                    await main.Mypage.LoadUserRanksAsync();
                     await main.Mypage.ForceReloadFromDbAsync();
+                }
 
-                MessageBox.Show("모든 유저의 주간 근무 시간이 초기화되었습니다.");
+                MessageBox.Show(
+                    "모든 유저의 주간 근무 시간이 초기화되었습니다.",
+                    "초기화 완료",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
             }
             catch (Exception ex)
             {
-                MessageBox.Show("주간 초기화 실패: " + ex.Message);
+                MessageBox.Show(
+                    "주간 초기화 실패:\n" + ex.Message,
+                    "오류",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
             }
         }
 
-        // ─ 수정된 선택 유저 주간 초기화 ─
+        // ─ 선택 유저 주간 초기화 ─
         private async Task ResetSelectedUserWeekTimeAsync(int userPkId, string username)
         {
             var result = MessageBox.Show(
@@ -738,10 +749,10 @@ namespace Police_Intranet
 
             try
             {
-                // 1️⃣ 해당 유저의 work 전부 조회
+                // 👉 해당 유저 데이터 존재 여부 체크
                 var resp = await client
                     .From<Work>()
-                    .Where(w => w.UserId == userPkId)   // ✅ FK = users.id
+                    .Where(w => w.UserId == userPkId)
                     .Get();
 
                 if (!resp.Models.Any())
@@ -750,17 +761,14 @@ namespace Police_Intranet
                     return;
                 }
 
-                // 2️⃣ PK(id) 기준으로 하나씩 Update (이게 제일 안전)
-                foreach (var work in resp.Models)
-                {
-                    work.WeekTotalSeconds = 0;
+                // 🔥 핵심: 한 번에 업데이트 (루프 제거)
+                await client
+                    .From<Work>()
+                    .Where(w => w.UserId == userPkId)
+                    .Set(w => w.WeekTotalSeconds, (long?)0)
+                    .Update();
 
-                    await client
-                        .From<Work>()
-                        .Where(w => w.Id == work.Id)   // ✅ work PK
-                        .Update(work);
-                }
-
+                // UI 갱신
                 await LoadWeekTimesAsync();
 
                 if (main?.Mypage != null)
@@ -786,7 +794,6 @@ namespace Police_Intranet
                 );
             }
         }
-
 
         private async Task LoadRidingUsersAsync()
         {

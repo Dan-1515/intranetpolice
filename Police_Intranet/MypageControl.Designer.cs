@@ -16,8 +16,6 @@ namespace Police_Intranet
         {
             if (disposing)
             {
-                // 🔥 이벤트 해제 (가장 중요)
-                Admin.ForceCheckoutEventBus.OnForceCheckout -= HandleForceCheckout;
 
                 // 🔥 타이머 정리
                 if (workTimer != null)
@@ -31,11 +29,6 @@ namespace Police_Intranet
                 components?.Dispose();
             }
             base.Dispose(disposing);
-        }
-
-        private void HandleForceCheckout(int obj)
-        {
-            throw new NotImplementedException();
         }
 
 

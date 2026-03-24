@@ -14,7 +14,7 @@ namespace Police_Intranet.Models
         public int UserId { get; set; }
 
         [Column("date")]
-        public String Date { get; set; }
+        public DateTime Date { get; set; }  // 문자열 대신 DateTime으로 매핑
 
         [Column("today_total_seconds")]
         public long? TodayTotalSeconds { get; set; }
@@ -26,13 +26,12 @@ namespace Police_Intranet.Models
         public DateTime? LastWorkStart { get; set; }
 
         [Column("is_working")]
-        public bool IsWorking { get; set; }
+        public bool? IsWorking { get; set; }  // nullable bool로 변경
 
         [Column("checkin_time")]
         public DateTime? CheckinTime { get; set; }
 
         [Column("checkout_time")]
         public DateTime? CheckoutTime { get; set; }
-
     }
 }
